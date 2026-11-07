@@ -1,8 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-baseURL: 'https://service-api.wanesrefat.workers.dev/api',
-})
+baseURL: 'https://service-api.wanesrefat.workers.dev/api',})
 
 // ✅ أضف الـ interceptor ده
 api.interceptors.request.use((config) => {
