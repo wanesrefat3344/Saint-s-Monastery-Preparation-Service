@@ -1,0 +1,26 @@
+{
+  "name": "خدمة إعدادي",
+  "short_name": "خدمة إعدادي",
+  "description": "نظام إدارة خدمة إعدادي — متابعة، حضور، افتقاد",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F8FA",
+  "theme_color": "#16324F",
+  "orientation": "portrait",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "./icon-1.jpeg",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-1.jpeg",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

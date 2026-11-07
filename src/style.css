@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-page text-navy;
+  font-family: 'Cairo', system-ui, sans-serif;
+}
+
+@layer components {
+  .input {
+    @apply w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm
+           focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand
+           transition;
+  }
+  .input-error {
+    @apply border-danger focus:ring-danger/30 focus:border-danger;
+  }
+  .error-text {
+    @apply text-xs text-danger mt-1;
+  }
+  .btn-primary {
+    @apply px-5 py-2.5 rounded-lg bg-brand text-white font-medium
+           hover:bg-brand/90 transition;
+  }
+  .btn-success {
+    @apply px-6 py-2.5 rounded-lg bg-success text-white font-medium
+           hover:bg-success/90 disabled:opacity-60 transition;
+  }
+  .btn-cancel {
+    @apply px-5 py-2.5 rounded-lg border border-border text-navy
+           hover:bg-navy/5 transition;
+  }
+  .card {
+    @apply bg-card rounded-xl border border-border shadow-sm p-6;
+  }
+}
