@@ -15,12 +15,18 @@
             <p class="text-sm text-navy/60 mt-1">مسجّل في: {{ formatDate(member.created_at) }}</p>
           </div>
           <div class="flex gap-2 flex-wrap">
+            <!-- ✅ زرار البطاقة -->
+            <router-link
+              :to="`/members/${member.id}/card`"
+              class="px-4 py-2 rounded-lg bg-gold text-white text-sm font-medium hover:opacity-90 inline-flex items-center gap-1.5"
+            >
+              🪪 البطاقة
+            </router-link>
             <router-link :to="`/members/${member.id}/edit`" class="px-4 py-2 rounded-lg bg-brand text-white text-sm hover:bg-brand/90">تعديل</router-link>
-            <router-link to="/members" class="px-4 py-2 rounded-lg border border-border text-navy text-sm hover:bg-navy/5">رجوع</router-link>
+            <router-link to="/members" class="px-4 py-2 rounded-lg border border-border text-navy bg-card hover:bg-navy/5">رجوع</router-link>
           </div>
         </div>
 
-        <!-- بيانات المخدوم -->
         <section class="card mb-4">
           <h2 class="text-lg font-semibold text-navy mb-4 flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-brand"></span>
@@ -33,12 +39,11 @@
             <Info label="الصف الدراسي" :value="member.grade" />
             <Info label="الخادم المسؤول" :value="member.servant_name || '—'" />
             <Info label="المجموعة" :value="member.group_name || '—'" />
-            <Info label="رقم هاتف المخدوم" :value="member.member_phone || '—'" />
+            <Info label="رقم هاتف المخدوم" :value="member.member_phone || '—'" dir="ltr" />
             <Info label="العنوان" :value="member.address || '—'" class="md:col-span-2" />
           </div>
         </section>
 
-        <!-- بيانات ولي الأمر -->
         <section class="card mb-4">
           <h2 class="text-lg font-semibold text-navy mb-4 flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-gold"></span>
@@ -50,15 +55,14 @@
             <div>
               <p class="text-xs text-navy/50 mb-1">رقم ولي الأمر</p>
               <div class="flex items-center gap-2">
-                <span class="font-mono">{{ member.parent_phone }}</span>
+                <span class="font-mono text-navy" dir="ltr">{{ member.parent_phone }}</span>
                 <a :href="`https://wa.me/2${member.parent_phone}`" target="_blank" class="text-success text-xs hover:underline">واتساب</a>
               </div>
             </div>
-            <Info label="رقم بديل" :value="member.alt_phone || '—'" />
+            <Info label="رقم بديل" :value="member.alt_phone || '—'" dir="ltr" />
           </div>
         </section>
 
-        <!-- إجراءات -->
         <div v-if="user.role === 'admin'" class="flex justify-end">
           <button @click="remove" class="px-4 py-2 rounded-lg bg-danger/10 text-danger text-sm hover:bg-danger/20">حذف المخدوم</button>
         </div>
@@ -73,11 +77,11 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '../api/client'
 
 const Info = {
-  props: ['label', 'value'],
+  props: ['label', 'value', 'dir'],
   template: `
     <div>
       <p class="text-xs text-navy/50 mb-1">{{ label }}</p>
-      <p class="font-medium text-navy">{{ value }}</p>
+      <p class="font-medium text-navy" :dir="dir || undefined">{{ value }}</p>
     </div>
   `,
 }

@@ -23,17 +23,17 @@
           </h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="md:col-span-2">
-              <label class="block text-sm font-medium mb-1">الاسم رباعي <span class="text-danger">*</span></label>
+              <label class="block text-sm font-medium mb-1 text-navy">الاسم رباعي <span class="text-danger">*</span></label>
               <input v-model.trim="form.fullName" type="text" class="input" :class="{ 'input-error': errors.fullName }" />
               <p v-if="errors.fullName" class="error-text">{{ errors.fullName }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">تاريخ الميلاد <span class="text-danger">*</span></label>
+              <label class="block text-sm font-medium mb-1 text-navy">تاريخ الميلاد <span class="text-danger">*</span></label>
               <input v-model="form.birthDate" type="date" class="input" :class="{ 'input-error': errors.birthDate }" />
               <p v-if="errors.birthDate" class="error-text">{{ errors.birthDate }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">النوع <span class="text-danger">*</span></label>
+              <label class="block text-sm font-medium mb-1 text-navy">النوع <span class="text-danger">*</span></label>
               <select v-model="form.gender" class="input" :class="{ 'input-error': errors.gender }">
                 <option value="">اختر</option>
                 <option value="male">ذكر</option>
@@ -42,7 +42,7 @@
               <p v-if="errors.gender" class="error-text">{{ errors.gender }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">الصف الدراسي <span class="text-danger">*</span></label>
+              <label class="block text-sm font-medium mb-1 text-navy">الصف الدراسي <span class="text-danger">*</span></label>
               <select v-model="form.grade" class="input" :class="{ 'input-error': errors.grade }">
                 <option value="">اختر</option>
                 <option v-for="g in grades" :key="g" :value="g">{{ g }}</option>
@@ -50,26 +50,26 @@
               <p v-if="errors.grade" class="error-text">{{ errors.grade }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">الخادم المسؤول</label>
+              <label class="block text-sm font-medium mb-1 text-navy">الخادم المسؤول</label>
               <select v-model="form.servantId" class="input">
                 <option value="">بدون</option>
                 <option v-for="s in activeServants" :key="s.id" :value="s.id">{{ s.name }}</option>
               </select>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">المجموعة</label>
+              <label class="block text-sm font-medium mb-1 text-navy">المجموعة</label>
               <select v-model="form.groupId" class="input">
                 <option value="">بدون</option>
                 <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
               </select>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">رقم هاتف المخدوم</label>
-              <input v-model.trim="form.memberPhone" type="tel" class="input" :class="{ 'input-error': errors.memberPhone }" />
+              <label class="block text-sm font-medium mb-1 text-navy">رقم هاتف المخدوم</label>
+              <input v-model.trim="form.memberPhone" type="tel" class="input" :class="{ 'input-error': errors.memberPhone }" dir="ltr" />
               <p v-if="errors.memberPhone" class="error-text">{{ errors.memberPhone }}</p>
             </div>
             <div class="md:col-span-2">
-              <label class="block text-sm font-medium mb-1">العنوان</label>
+              <label class="block text-sm font-medium mb-1 text-navy">العنوان</label>
               <textarea v-model.trim="form.address" rows="2" class="input resize-none"></textarea>
             </div>
           </div>
@@ -81,17 +81,17 @@
           </h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium mb-1">اسم ولي الأمر <span class="text-danger">*</span></label>
+              <label class="block text-sm font-medium mb-1 text-navy">اسم ولي الأمر <span class="text-danger">*</span></label>
               <input v-model.trim="form.parentName" type="text" class="input" :class="{ 'input-error': errors.parentName }" />
               <p v-if="errors.parentName" class="error-text">{{ errors.parentName }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">رقم ولي الأمر <span class="text-danger">*</span></label>
-              <input v-model.trim="form.parentPhone" type="tel" class="input" :class="{ 'input-error': errors.parentPhone }" />
+              <label class="block text-sm font-medium mb-1 text-navy">رقم ولي الأمر <span class="text-danger">*</span></label>
+              <input v-model.trim="form.parentPhone" type="tel" class="input" :class="{ 'input-error': errors.parentPhone }" dir="ltr" />
               <p v-if="errors.parentPhone" class="error-text">{{ errors.parentPhone }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">صلة القرابة <span class="text-danger">*</span></label>
+              <label class="block text-sm font-medium mb-1 text-navy">صلة القرابة <span class="text-danger">*</span></label>
               <select v-model="form.relation" class="input" :class="{ 'input-error': errors.relation }">
                 <option value="">اختر</option>
                 <option v-for="r in relations" :key="r" :value="r">{{ r }}</option>
@@ -99,8 +99,8 @@
               <p v-if="errors.relation" class="error-text">{{ errors.relation }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">رقم بديل</label>
-              <input v-model.trim="form.altPhone" type="tel" class="input" :class="{ 'input-error': errors.altPhone }" />
+              <label class="block text-sm font-medium mb-1 text-navy">رقم بديل</label>
+              <input v-model.trim="form.altPhone" type="tel" class="input" :class="{ 'input-error': errors.altPhone }" dir="ltr" />
               <p v-if="errors.altPhone" class="error-text">{{ errors.altPhone }}</p>
             </div>
           </div>

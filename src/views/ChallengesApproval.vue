@@ -2,7 +2,6 @@
   <div class="min-h-screen bg-page py-8 px-4" dir="rtl">
     <div class="max-w-4xl mx-auto">
 
-      <!-- Header -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div class="flex items-start gap-3">
           <button
@@ -28,7 +27,7 @@
         <div class="flex gap-2 self-start sm:self-auto">
           <router-link
             to="/challenges"
-            class="px-4 py-2 rounded-lg border border-border text-navy text-sm hover:bg-navy/5 transition-colors duration-200 flex items-center gap-1.5"
+            class="px-4 py-2 rounded-lg border border-border text-navy bg-card text-sm hover:bg-navy/5 transition-colors duration-200 flex items-center gap-1.5"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
@@ -38,7 +37,6 @@
         </div>
       </div>
 
-      <!-- Success message -->
       <transition name="fade">
         <div v-if="successMessage" class="mb-4 rounded-lg bg-success/10 border border-success text-success px-4 py-3 text-sm flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -48,7 +46,6 @@
         </div>
       </transition>
 
-      <!-- Loading -->
       <div v-if="loading" class="card flex flex-col items-center justify-center py-16 gap-3">
         <svg class="animate-spin w-7 h-7 text-navy/40" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -57,7 +54,6 @@
         <span class="text-navy/50 text-sm">جارٍ التحميل...</span>
       </div>
 
-      <!-- Empty state -->
       <div v-else-if="pendingRequests.length === 0" class="card text-center py-16">
         <div class="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -68,7 +64,6 @@
         <p class="text-xs text-navy/40 mt-1">كل الطلبات تمت معالجتها</p>
       </div>
 
-      <!-- Requests -->
       <div v-else class="space-y-3">
         <div
           v-for="r in pendingRequests"

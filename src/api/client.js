@@ -1,14 +1,13 @@
 import axios from 'axios'
 
 const api = axios.create({
-baseURL: 'https://service-api.wanesrefat.workers.dev/api',})
+  baseURL: 'https://service-api.wanesrefat.workers.dev/api',
+  timeout: 20000,
+})
 
-// ✅ أضف الـ interceptor ده
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
+  if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 

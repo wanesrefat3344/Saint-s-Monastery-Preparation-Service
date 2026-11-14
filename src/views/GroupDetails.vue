@@ -2,7 +2,6 @@
   <div class="min-h-screen bg-page" dir="rtl">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
 
-      <!-- ============ Loading skeleton ============ -->
       <div v-if="loading" class="space-y-6 animate-pulse" aria-busy="true" aria-live="polite">
         <div class="flex items-center gap-4">
           <div class="w-14 h-14 rounded-2xl bg-navy/5"></div>
@@ -19,10 +18,9 @@
         <span class="sr-only">جارٍ التحميل...</span>
       </div>
 
-      <!-- ============ Not found ============ -->
       <div
         v-else-if="!group"
-        class="rounded-2xl border border-border bg-white p-8 text-center"
+        class="rounded-2xl border border-border bg-card p-8 text-center"
       >
         <div class="mx-auto mb-3 w-12 h-12 rounded-full bg-danger/10 text-danger flex items-center justify-center">
           <Icon name="alert" class="w-5 h-5" />
@@ -40,7 +38,6 @@
 
       <template v-else>
 
-        <!-- ============ Header ============ -->
         <header class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
           <div class="flex items-center gap-3 min-w-0">
             <div class="w-14 h-14 rounded-2xl bg-brand/10 text-brand flex items-center justify-center text-2xl font-bold shrink-0">
@@ -75,7 +72,7 @@
             </router-link>
             <button
               @click="goBack"
-              class="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-sm text-navy/70 hover:text-brand hover:border-brand/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+              class="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-navy/70 hover:text-brand hover:border-brand/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
             >
               <Icon name="arrow-right" class="w-4 h-4" />
               رجوع
@@ -83,7 +80,6 @@
           </div>
         </header>
 
-        <!-- ============ Success ============ -->
         <transition name="fade">
           <div
             v-if="successMessage"
@@ -95,15 +91,13 @@
           </div>
         </transition>
 
-        <!-- ============ Description ============ -->
         <section
           v-if="group.description"
-          class="rounded-2xl border border-border bg-white p-4 sm:p-5 mb-5"
+          class="rounded-2xl border border-border bg-card p-4 sm:p-5 mb-5"
         >
           <p class="text-sm text-navy/70 leading-relaxed">{{ group.description }}</p>
         </section>
 
-        <!-- ============ Score card ============ -->
         <section
           class="rounded-2xl border border-border bg-gradient-to-l from-gold/5 to-transparent p-5 sm:p-6 mb-5"
           aria-labelledby="score-title"
@@ -154,7 +148,6 @@
           </div>
         </section>
 
-        <!-- ============ Stats ============ -->
         <section
           class="grid grid-cols-2 md:grid-cols-4 gap-px rounded-2xl overflow-hidden border border-border bg-border mb-5"
           aria-label="إحصائيات"
@@ -165,9 +158,8 @@
           <Stat label="غايبين 3 مرات" :value="consecutiveAbsent.length" :tone="consecutiveAbsent.length ? 'danger' : 'muted'" />
         </section>
 
-        <!-- ============ Members ============ -->
         <section
-          class="rounded-2xl border border-border bg-white"
+          class="rounded-2xl border border-border bg-card"
           aria-labelledby="members-title"
         >
           <div class="flex items-center justify-between px-5 sm:px-6 pt-5 pb-4 border-b border-border">
@@ -178,7 +170,6 @@
             </h2>
           </div>
 
-          <!-- Empty -->
           <div v-if="members.length === 0" class="px-5 sm:px-6 py-12 text-center">
             <div class="mx-auto mb-3 w-12 h-12 rounded-full bg-page text-navy/40 flex items-center justify-center">
               <Icon name="users" class="w-5 h-5" />
@@ -186,7 +177,6 @@
             <p class="text-sm text-navy/60">مفيش أعضاء في المجموعة دي لسه</p>
           </div>
 
-          <!-- List -->
           <ul v-else class="divide-y divide-border">
             <li
               v-for="m in members"
@@ -226,7 +216,6 @@ import api from '../api/client'
 import { calculateRiskScore } from '../utils/riskScore'
 import { calculateGroupScore } from '../utils/groupScore'
 
-/* ================= Icon component ================= */
 const ICONS = {
   'arrow-right': 'M9 5l7 7-7 7',
   alert: 'M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01',
@@ -258,7 +247,6 @@ const Icon = {
   },
 }
 
-/* ================= Stat component ================= */
 const Stat = {
   props: {
     label: String,
@@ -274,7 +262,7 @@ const Stat = {
       muted: 'text-navy/40',
     }
     return () =>
-      h('div', { class: 'bg-white px-4 py-3.5' }, [
+      h('div', { class: 'bg-card px-4 py-3.5' }, [
         h('p', { class: 'text-xs text-navy/50 mb-1' }, props.label),
         h(
           'p',
@@ -285,7 +273,6 @@ const Stat = {
   },
 }
 
-/* ================= State ================= */
 const route = useRoute()
 const router = useRouter()
 
@@ -298,7 +285,6 @@ const groupChallenges = ref([])
 const loading = ref(true)
 const successMessage = ref('')
 
-/* ================= Computed ================= */
 const scoreData = computed(() => {
   if (!group.value) return { total: 0, breakdown: [] }
   return calculateGroupScore(
@@ -379,7 +365,6 @@ const consecutiveAbsent = computed(() => {
   })
 })
 
-/* ================= Helpers ================= */
 function scoreLevelClass(score) {
   if (score >= 80) return { text: 'text-success' }
   if (score >= 60) return { text: 'text-gold' }
@@ -399,7 +384,6 @@ function goBack() {
   else router.push('/groups')
 }
 
-/* ================= Actions ================= */
 async function loadData() {
   loading.value = true
   try {

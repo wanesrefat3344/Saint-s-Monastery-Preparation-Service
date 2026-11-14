@@ -1,6 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/Login.vue'
+import MemberCard from '../views/MemberCard.vue'
+
 import Dashboard from '../views/Dashboard.vue'
+import MyService from '../views/MyService.vue'
+import Team from '../views/Team.vue'
+
 import MemberForm from '../views/MemberForm.vue'
 import MemberList from '../views/MemberList.vue'
 import MemberDetails from '../views/MemberDetails.vue'
@@ -26,8 +31,15 @@ import ReadingsList from '../views/ReadingsList.vue'
 import ReadingForm from '../views/ReadingForm.vue'
 
 const routes = [
+  { path: '/members/:id/card', name: 'member-card', component: MemberCard, meta: { title: 'بطاقة المخدوم' } },
+
   { path: '/login', name: 'login', component: Login, meta: { public: true, title: 'تسجيل الدخول' } },
   { path: '/', name: 'dashboard', component: Dashboard, meta: { title: 'لوحة التحكم' } },
+
+  { path: '/my-service', name: 'my-service', component: MyService, meta: { title: 'خدمتي' } },
+  { path: '/team', name: 'team', component: Team, meta: { adminOnly: true, title: 'الفريق' } },
+  { path: '/team/:id', name: 'team-servant', component: ServantDetails, meta: { adminOnly: true, title: 'تفاصيل الخادم' } },
+
   { path: '/members', name: 'members', component: MemberList, meta: { title: 'قائمة المخدومين' } },
   { path: '/members/new', name: 'member-new', component: MemberForm, meta: { title: 'تسجيل مخدوم' } },
   { path: '/members/:id', name: 'member-details', component: MemberDetails, meta: { title: 'تفاصيل المخدوم' } },
@@ -38,16 +50,19 @@ const routes = [
   { path: '/reports', name: 'reports', component: Reports, meta: { title: 'التقارير' } },
   { path: '/audit-log', name: 'audit-log', component: AuditLog, meta: { adminOnly: true, title: 'سجل النشاط' } },
   { path: '/settings', name: 'settings', component: Settings, meta: { adminOnly: true, title: 'الإعدادات' } },
-  { path: '/groups', name: 'groups', component: GroupsList, meta: { adminOnly: true, title: 'المجموعات' } },
+  { path: '/groups', name: 'groups', component: GroupsList, meta: { title: 'المجموعات' } },
   { path: '/groups/:id', name: 'group-details', component: GroupDetails, meta: { title: 'تفاصيل المجموعة' } },
   { path: '/groups/:id/challenges', name: 'group-challenges', component: GroupChallenges, meta: { title: 'تحديات المجموعة' } },
   { path: '/leaders-approval', name: 'leaders-approval', component: LeadersApproval, meta: { adminOnly: true, title: 'ترشيحات الليدز' } },
-  { path: '/servants', name: 'servants', component: ServantsList, meta: { adminOnly: true, title: 'الخدام' } },
+
+  // ✅ شيلنا adminOnly من /servants
+  { path: '/servants', name: 'servants', component: ServantsList, meta: { title: 'الخدام' } },
   { path: '/servants/:id', name: 'servant-details', component: ServantDetails, meta: { adminOnly: true, title: 'بروفايل الخادم' } },
   { path: '/servants-approval', name: 'servants-approval', component: ServantsApproval, meta: { adminOnly: true, title: 'طلبات إضافة خدام' } },
-  { path: '/challenges', name: 'challenges', component: ChallengesList, meta: { adminOnly: true, title: 'التحديات' } },
+
+  { path: '/challenges', name: 'challenges', component: ChallengesList, meta: { title: 'التحديات' } },
   { path: '/challenges-approval', name: 'challenges-approval', component: ChallengesApproval, meta: { adminOnly: true, title: 'طلبات الاشتراك في التحديات' } },
-  { path: '/challenges/:id', name: 'challenge-details', component: ChallengeDetails, meta: { adminOnly: true, title: 'تفاصيل التحدي' } },
+  { path: '/challenges/:id', name: 'challenge-details', component: ChallengeDetails, meta: { title: 'تفاصيل التحدي' } },
   { path: '/reading-books', name: 'reading-books', component: ReadingBooksList, meta: { adminOnly: true, title: 'أسفار القراءة' } },
   { path: '/readings', name: 'readings', component: ReadingsList, meta: { public: true, title: 'القراءات' } },
   { path: '/readings/new', name: 'reading-new', component: ReadingForm, meta: { public: true, title: 'تسجيل قراءة' } },
@@ -65,28 +80,20 @@ router.beforeEach((to) => {
   const token = localStorage.getItem('token')
   const user = JSON.parse(localStorage.getItem('user') || '{}')
 
-  // ===== الصفحات العامة =====
   if (to.meta.public) {
-    // لو مسجل دخول وحاول يفتح login
     if (to.name === 'login' && token) {
-      return user.role === 'reader'
-        ? { name: 'reading-new' }
-        : { name: 'dashboard' }
+      return user.role === 'reader' ? { name: 'reading-new' } : { name: 'dashboard' }
     }
     return true
   }
 
-  // ===== الصفحات المحمية =====
   if (!token) return { name: 'login' }
 
-  // ===== دور reader: يقدر بس على /readings/new =====
   if (user.role === 'reader' && to.name !== 'reading-new') {
     return { name: 'reading-new' }
   }
 
-  // ===== صفحات الأدمن فقط =====
   if (to.meta.adminOnly && user.role !== 'admin') {
-    // reader بيترجع لـ reading-new، غيره لـ dashboard
     if (user.role === 'reader') return { name: 'reading-new' }
     return { name: 'dashboard' }
   }

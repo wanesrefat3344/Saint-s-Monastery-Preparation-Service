@@ -2,15 +2,14 @@
   <div class="min-h-screen bg-page py-10 px-4 pb-28" dir="rtl">
     <div class="max-w-3xl mx-auto">
 
-      <!-- Header with back button -->
+      <!-- Header -->
       <div class="mb-6 flex items-start justify-between gap-3">
         <div class="flex items-start gap-3">
           <button
             type="button"
             @click="goBack"
-            class="mt-1 shrink-0 w-10 h-10 rounded-full bg-card border border-border text-navy flex items-center justify-center hover:bg-navy hover:text-white transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-navy/30"
+            class="mt-1 shrink-0 w-10 h-10 rounded-full bg-card border border-border text-navy flex items-center justify-center hover:bg-navy hover:text-white transition-colors"
             aria-label="رجوع"
-            title="رجوع"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
@@ -23,27 +22,28 @@
         </div>
       </div>
 
-      <!-- Alerts -->
+      <!-- Draft notice -->
+      <div v-if="hasDraft && !draftLoaded" class="mb-4 rounded-lg bg-gold/10 border border-gold text-navy px-4 py-3 text-sm flex items-center justify-between gap-3">
+        <span>📝 عندك مسودة محفوظة من قبل</span>
+        <div class="flex gap-2">
+          <button @click="restoreDraft" class="text-brand font-medium hover:underline text-xs">استرجاع</button>
+          <button @click="clearDraft" class="text-danger font-medium hover:underline text-xs">مسح</button>
+        </div>
+      </div>
+
       <transition name="fade">
-        <div v-if="successMessage" class="mb-4 rounded-lg bg-success/10 border border-success text-success px-4 py-3 text-sm flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-          <span>{{ successMessage }}</span>
+        <div v-if="successMessage" class="mb-4 rounded-lg bg-success/10 border border-success text-success px-4 py-3 text-sm">
+          {{ successMessage }}
         </div>
       </transition>
       <transition name="fade">
-        <div v-if="generalError" class="mb-4 rounded-lg bg-danger/10 border border-danger text-danger px-4 py-3 text-sm flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span>{{ generalError }}</span>
+        <div v-if="generalError" class="mb-4 rounded-lg bg-danger/10 border border-danger text-danger px-4 py-3 text-sm">
+          {{ generalError }}
         </div>
       </transition>
 
       <form @submit.prevent="submitForm" class="space-y-6">
-        <!-- بيانات المخدوم -->
-        <section class="bg-card rounded-xl border border-border shadow-sm p-6">
+        <section class="card">
           <h2 class="text-lg font-semibold text-navy mb-4 flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-gold"></span>
             بيانات المخدوم
@@ -51,7 +51,7 @@
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="md:col-span-2">
-              <label class="block text-sm font-medium mb-1">الاسم رباعي <span class="text-danger">*</span></label>
+              <label class="block text-sm font-medium mb-1 text-navy">الاسم رباعي <span class="text-danger">*</span></label>
               <input
                 v-model.trim="form.fullName"
                 type="text"
@@ -64,26 +64,15 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium mb-1">تاريخ الميلاد <span class="text-danger">*</span></label>
-              <input
-                v-model="form.birthDate"
-                type="date"
-                class="input"
-                :class="{ 'input-error': errors.birthDate }"
-                @blur="touched.birthDate = true"
-              />
+              <label class="block text-sm font-medium mb-1 text-navy">تاريخ الميلاد <span class="text-danger">*</span></label>
+              <input v-model="form.birthDate" type="date" class="input" :class="{ 'input-error': errors.birthDate }" />
               <p v-if="errors.birthDate" class="error-text">{{ errors.birthDate }}</p>
               <p v-else-if="age !== null" class="text-xs text-navy/50 mt-1">العمر: {{ age }} سنة</p>
             </div>
 
             <div>
-              <label class="block text-sm font-medium mb-1">النوع <span class="text-danger">*</span></label>
-              <select
-                v-model="form.gender"
-                class="input"
-                :class="{ 'input-error': errors.gender }"
-                @blur="touched.gender = true"
-              >
+              <label class="block text-sm font-medium mb-1 text-navy">النوع <span class="text-danger">*</span></label>
+              <select v-model="form.gender" class="input" :class="{ 'input-error': errors.gender }">
                 <option value="">اختر النوع</option>
                 <option value="male">ذكر</option>
                 <option value="female">أنثى</option>
@@ -92,13 +81,8 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium mb-1">الصف الدراسي <span class="text-danger">*</span></label>
-              <select
-                v-model="form.grade"
-                class="input"
-                :class="{ 'input-error': errors.grade }"
-                @blur="touched.grade = true"
-              >
+              <label class="block text-sm font-medium mb-1 text-navy">الصف الدراسي <span class="text-danger">*</span></label>
+              <select v-model="form.grade" class="input" :class="{ 'input-error': errors.grade }">
                 <option value="">اختر الصف</option>
                 <option v-for="g in grades" :key="g" :value="g">{{ g }}</option>
               </select>
@@ -106,7 +90,7 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium mb-1">الخادم المسؤول</label>
+              <label class="block text-sm font-medium mb-1 text-navy">الخادم المسؤول</label>
               <select v-model="form.servantId" class="input">
                 <option value="">بدون</option>
                 <option v-for="s in activeServants" :key="s.id" :value="s.id">{{ s.name }}</option>
@@ -114,7 +98,7 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium mb-1">المجموعة</label>
+              <label class="block text-sm font-medium mb-1 text-navy">المجموعة</label>
               <select v-model="form.groupId" class="input">
                 <option value="">بدون</option>
                 <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
@@ -122,86 +106,45 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium mb-1">رقم هاتف المخدوم</label>
-              <input
-                v-model.trim="form.memberPhone"
-                type="tel"
-                inputmode="numeric"
-                placeholder="01xxxxxxxxx"
-                class="input"
-                :class="{ 'input-error': errors.memberPhone }"
-                @blur="touched.memberPhone = true"
-              />
+              <label class="block text-sm font-medium mb-1 text-navy">رقم هاتف المخدوم</label>
+              <input v-model.trim="form.memberPhone" type="tel" inputmode="numeric" placeholder="01xxxxxxxxx" class="input" :class="{ 'input-error': errors.memberPhone }" dir="ltr" />
               <p v-if="errors.memberPhone" class="error-text">{{ errors.memberPhone }}</p>
             </div>
 
             <div class="md:col-span-2">
-              <label class="block text-sm font-medium mb-1">العنوان</label>
-              <textarea
-                v-model.trim="form.address"
-                rows="2"
-                placeholder="المدينة - الشارع - رقم المنزل"
-                class="input resize-none"
-              ></textarea>
+              <label class="block text-sm font-medium mb-1 text-navy">العنوان</label>
+              <textarea v-model.trim="form.address" rows="2" placeholder="المدينة - الشارع - رقم المنزل" class="input resize-none"></textarea>
             </div>
           </div>
         </section>
 
-        <!-- بيانات ولي الأمر -->
-        <section class="bg-card rounded-xl border border-border shadow-sm p-6">
+        <section class="card">
           <h2 class="text-lg font-semibold text-navy mb-4 flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-gold"></span>
             بيانات ولي الأمر
           </h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium mb-1">اسم ولي الأمر <span class="text-danger">*</span></label>
-              <input
-                v-model.trim="form.parentName"
-                type="text"
-                class="input"
-                :class="{ 'input-error': errors.parentName }"
-                @blur="touched.parentName = true"
-              />
+              <label class="block text-sm font-medium mb-1 text-navy">اسم ولي الأمر <span class="text-danger">*</span></label>
+              <input v-model.trim="form.parentName" type="text" class="input" :class="{ 'input-error': errors.parentName }" />
               <p v-if="errors.parentName" class="error-text">{{ errors.parentName }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">رقم هاتف ولي الأمر <span class="text-danger">*</span></label>
-              <input
-                v-model.trim="form.parentPhone"
-                type="tel"
-                inputmode="numeric"
-                placeholder="01xxxxxxxxx"
-                class="input"
-                :class="{ 'input-error': errors.parentPhone }"
-                @blur="touched.parentPhone = true"
-              />
+              <label class="block text-sm font-medium mb-1 text-navy">رقم هاتف ولي الأمر <span class="text-danger">*</span></label>
+              <input v-model.trim="form.parentPhone" type="tel" inputmode="numeric" placeholder="01xxxxxxxxx" class="input" :class="{ 'input-error': errors.parentPhone }" dir="ltr" />
               <p v-if="errors.parentPhone" class="error-text">{{ errors.parentPhone }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">صلة القرابة <span class="text-danger">*</span></label>
-              <select
-                v-model="form.relation"
-                class="input"
-                :class="{ 'input-error': errors.relation }"
-                @blur="touched.relation = true"
-              >
+              <label class="block text-sm font-medium mb-1 text-navy">صلة القرابة <span class="text-danger">*</span></label>
+              <select v-model="form.relation" class="input" :class="{ 'input-error': errors.relation }">
                 <option value="">اختر صلة القرابة</option>
                 <option v-for="r in relations" :key="r" :value="r">{{ r }}</option>
               </select>
               <p v-if="errors.relation" class="error-text">{{ errors.relation }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">رقم هاتف بديل</label>
-              <input
-                v-model.trim="form.altPhone"
-                type="tel"
-                inputmode="numeric"
-                placeholder="01xxxxxxxxx"
-                class="input"
-                :class="{ 'input-error': errors.altPhone }"
-                @blur="touched.altPhone = true"
-              />
+              <label class="block text-sm font-medium mb-1 text-navy">رقم هاتف بديل</label>
+              <input v-model.trim="form.altPhone" type="tel" inputmode="numeric" placeholder="01xxxxxxxxx" class="input" :class="{ 'input-error': errors.altPhone }" dir="ltr" />
               <p v-if="errors.altPhone" class="error-text">{{ errors.altPhone }}</p>
             </div>
           </div>
@@ -209,28 +152,10 @@
       </form>
     </div>
 
-    <!-- Actions fixed bottom -->
     <div class="fixed bottom-0 inset-x-0 z-20 bg-card/95 backdrop-blur border-t border-border">
       <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-end gap-3">
-        <button
-          type="button"
-          @click="resetForm"
-          :disabled="loading"
-          class="px-5 py-2.5 rounded-lg border border-border text-navy hover:bg-navy/5 disabled:opacity-60 transition-colors duration-200"
-        >
-          إلغاء
-        </button>
-        <button
-          type="submit"
-          form=""
-          @click="submitForm"
-          :disabled="loading"
-          class="px-6 py-2.5 rounded-lg bg-success text-white font-medium hover:bg-success/90 disabled:opacity-60 transition-colors duration-200 flex items-center gap-2"
-        >
-          <svg v-if="loading" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-          </svg>
+        <button type="button" @click="resetForm" :disabled="loading" class="btn-cancel">إلغاء</button>
+        <button type="button" @click="submitForm" :disabled="loading" class="btn-success">
           {{ loading ? 'جارٍ الحفظ...' : 'حفظ البيانات' }}
         </button>
       </div>
@@ -242,28 +167,17 @@
 import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/client'
+import { useAutoSave } from '../composables/useAutoSave'
 
 const router = useRouter()
 
-const grades = [
-  'الصف الأول الإعدادي', 'الصف الثاني الإعدادي', 'الصف الثالث الإعدادي',
-]
-
+const grades = ['الصف الأول الإعدادي', 'الصف الثاني الإعدادي', 'الصف الثالث الإعدادي']
 const relations = ['أب', 'أم', 'أخ', 'أخت', 'عم', 'خال', 'جد', 'جدة', 'غير ذلك']
 
 const form = reactive({
-  fullName: '',
-  birthDate: '',
-  gender: '',
-  grade: '',
-  memberPhone: '',
-  address: '',
-  servantId: '',
-  groupId: '',
-  parentName: '',
-  parentPhone: '',
-  relation: '',
-  altPhone: '',
+  fullName: '', birthDate: '', gender: '', grade: '',
+  memberPhone: '', address: '', servantId: '', groupId: '',
+  parentName: '', parentPhone: '', relation: '', altPhone: '',
 })
 
 const errors = reactive({})
@@ -273,6 +187,10 @@ const successMessage = ref('')
 const generalError = ref('')
 const servants = ref([])
 const groups = ref([])
+const draftLoaded = ref(false)
+
+// ✅ Auto-save
+const { hasDraft, loadDraft, clearDraft } = useAutoSave('member_draft', form, 800)
 
 const activeServants = computed(() =>
   servants.value.filter((s) => ['servant', 'co_servant', 'group_leader'].includes(s.role) && s.status === 'active')
@@ -297,12 +215,12 @@ function validate() {
   if (!form.birthDate) errors.birthDate = 'تاريخ الميلاد مطلوب'
   if (!form.gender) errors.gender = 'النوع مطلوب'
   if (!form.grade) errors.grade = 'الصف الدراسي مطلوب'
-  if (form.memberPhone && !isValidPhone(form.memberPhone)) errors.memberPhone = 'رقم غير صحيح (11 رقم يبدأ بـ 01)'
+  if (form.memberPhone && !isValidPhone(form.memberPhone)) errors.memberPhone = 'رقم غير صحيح'
   if (!form.parentName) errors.parentName = 'اسم ولي الأمر مطلوب'
   if (!form.parentPhone) errors.parentPhone = 'رقم ولي الأمر مطلوب'
-  else if (!isValidPhone(form.parentPhone)) errors.parentPhone = 'رقم غير صحيح (11 رقم يبدأ بـ 01)'
+  else if (!isValidPhone(form.parentPhone)) errors.parentPhone = 'رقم غير صحيح'
   if (!form.relation) errors.relation = 'صلة القرابة مطلوبة'
-  if (form.altPhone && !isValidPhone(form.altPhone)) errors.altPhone = 'رقم غير صحيح (11 رقم يبدأ بـ 01)'
+  if (form.altPhone && !isValidPhone(form.altPhone)) errors.altPhone = 'رقم غير صحيح'
   return Object.keys(errors).length === 0
 }
 
@@ -311,15 +229,10 @@ async function submitForm() {
   generalError.value = ''
   if (!validate()) {
     Object.keys(errors).forEach((k) => (touched[k] = true))
-    requestAnimationFrame(() => {
-      const firstError = document.querySelector('.input-error')
-      firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    })
     return
   }
 
   loading.value = true
-
   try {
     const payload = {
       full_name: form.fullName,
@@ -336,17 +249,24 @@ async function submitForm() {
       alt_phone: form.altPhone || null,
     }
 
-    await api.post('/members', payload)
+    const { data } = await api.post('/members', payload)
 
     successMessage.value = 'تم حفظ بيانات المخدوم بنجاح ✅'
+    clearDraft()
     resetForm(false)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-    setTimeout(() => router.push('/members'), 1200)
+    setTimeout(() => router.push(`/members/${data.id}/card`), 1200)
   } catch (err) {
     generalError.value = err.response?.data?.message || 'حدث خطأ أثناء الحفظ'
-    window.scrollTo({ top: 0, behavior: 'smooth' })
   } finally {
     loading.value = false
+  }
+}
+
+function restoreDraft() {
+  const draft = loadDraft()
+  if (draft) {
+    Object.assign(form, draft)
+    draftLoaded.value = true
   }
 }
 
@@ -361,15 +281,13 @@ function resetForm(clearMessages = true) {
   if (clearMessages) {
     successMessage.value = ''
     generalError.value = ''
+    clearDraft()
   }
 }
 
 function goBack() {
-  if (window.history.length > 1) {
-    router.back()
-  } else {
-    router.push('/members')
-  }
+  if (window.history.length > 1) router.back()
+  else router.push('/members')
 }
 
 async function loadData() {

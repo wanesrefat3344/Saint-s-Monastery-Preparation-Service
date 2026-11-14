@@ -1,17 +1,18 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{vue,js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
-        brand: '#0F766E',
-        navy: '#16324F',
-        page: '#F5F8FA',
-        card: '#FFFFFF',
-        border: '#D9E2E8',
-        gold: '#D6A756',
-        success: '#15803D',
-        danger: '#DC2626',
+        brand:   'rgb(var(--color-brand) / <alpha-value>)',
+        navy:    'rgb(var(--color-navy) / <alpha-value>)',
+        page:    'rgb(var(--color-page) / <alpha-value>)',
+        card:    'rgb(var(--color-card) / <alpha-value>)',
+        border:  'rgb(var(--color-border) / <alpha-value>)',
+        gold:    'rgb(var(--color-gold) / <alpha-value>)',
+        success: 'rgb(var(--color-success) / <alpha-value>)',
+        danger:  'rgb(var(--color-danger) / <alpha-value>)',
       },
     },
   },

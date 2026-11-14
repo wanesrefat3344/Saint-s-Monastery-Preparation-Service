@@ -2,7 +2,6 @@
   <div class="min-h-screen bg-page" dir="rtl">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
 
-      <!-- ============ Header ============ -->
       <header class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
         <div class="min-w-0">
           <p class="text-xs text-navy/50 mb-1">إدارة</p>
@@ -11,14 +10,13 @@
         </div>
         <button
           @click="goBack"
-          class="shrink-0 inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-sm text-navy/70 hover:text-brand hover:border-brand/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+          class="shrink-0 inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-navy/70 hover:text-brand hover:border-brand/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
         >
           <Icon name="arrow-right" class="w-4 h-4" />
           رجوع
         </button>
       </header>
 
-      <!-- ============ Success ============ -->
       <transition name="fade">
         <div
           v-if="successMessage"
@@ -30,9 +28,8 @@
         </div>
       </transition>
 
-      <!-- ============ Backup ============ -->
       <section
-        class="rounded-2xl border border-border bg-white p-5 sm:p-6 mb-5"
+        class="rounded-2xl border border-border bg-card p-5 sm:p-6 mb-5"
         aria-labelledby="backup-title"
       >
         <div class="flex items-start gap-3 mb-4">
@@ -73,7 +70,6 @@
         </div>
       </section>
 
-      <!-- ============ Clear data ============ -->
       <section
         class="rounded-2xl border border-danger/30 bg-danger/[0.02] p-5 sm:p-6 mb-5"
         aria-labelledby="clear-title"
@@ -99,9 +95,8 @@
         </button>
       </section>
 
-      <!-- ============ System info ============ -->
       <section
-        class="rounded-2xl border border-border bg-white"
+        class="rounded-2xl border border-border bg-card"
         aria-labelledby="system-title"
       >
         <div class="flex items-start gap-3 px-5 sm:px-6 pt-5 pb-4 border-b border-border">
@@ -114,7 +109,6 @@
           </div>
         </div>
 
-        <!-- Mode banner -->
         <div class="px-5 sm:px-6 pt-4">
           <div
             class="flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm border"
@@ -130,7 +124,6 @@
           </div>
         </div>
 
-        <!-- Stats grid -->
         <div class="grid grid-cols-2 md:grid-cols-3 gap-px bg-border border-t border-border mt-4 rounded-b-2xl overflow-hidden">
           <StatItem label="المخدومين" :value="stats.members" tone="default" icon="user" />
           <StatItem label="الحسابات" :value="stats.users" tone="brand" icon="users" />
@@ -150,7 +143,6 @@ import { useRouter } from 'vue-router'
 import { DEMO_MODE } from '../config'
 import { logActivity } from '../utils/auditLog'
 
-/* ================= Icon component ================= */
 const ICONS = {
   'arrow-right': 'M9 5l7 7-7 7',
   alert: 'M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01',
@@ -189,7 +181,6 @@ const Icon = {
   },
 }
 
-/* ================= Stat component ================= */
 const StatItem = {
   props: {
     label: String,
@@ -209,7 +200,7 @@ const StatItem = {
       muted: 'text-navy/40',
     }
     return () =>
-      h('div', { class: 'bg-white px-4 py-3.5 flex items-start gap-2.5' }, [
+      h('div', { class: 'bg-card px-4 py-3.5 flex items-start gap-2.5' }, [
         props.icon
           ? h(
               'div',
@@ -241,7 +232,6 @@ const StatItem = {
   },
 }
 
-/* ================= State ================= */
 const router = useRouter()
 const successMessage = ref('')
 const stats = ref({ members: 0, users: 0, followups: 0, attendance: 0, auditLog: 0 })
@@ -259,13 +249,11 @@ const KEYS = {
   auditLog: 'demo_audit_log',
 }
 
-/* ================= Helpers ================= */
 function goBack() {
   if (window.history.length > 1) router.back()
   else router.push('/')
 }
 
-/* ================= Actions ================= */
 function exportBackup() {
   const backup = {
     version: 1,

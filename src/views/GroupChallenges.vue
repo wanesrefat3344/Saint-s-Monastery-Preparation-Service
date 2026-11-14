@@ -2,7 +2,6 @@
   <div class="min-h-screen bg-page" dir="rtl">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
 
-      <!-- ============ Loading skeleton ============ -->
       <div v-if="loading" class="space-y-6 animate-pulse" aria-busy="true" aria-live="polite">
         <div class="flex items-center gap-4">
           <div class="w-14 h-14 rounded-2xl bg-navy/5"></div>
@@ -16,10 +15,9 @@
         <span class="sr-only">جارٍ التحميل...</span>
       </div>
 
-      <!-- ============ Not found ============ -->
       <div
         v-else-if="!group"
-        class="rounded-2xl border border-border bg-white p-8 text-center"
+        class="rounded-2xl border border-border bg-card p-8 text-center"
       >
         <div class="mx-auto mb-3 w-12 h-12 rounded-full bg-danger/10 text-danger flex items-center justify-center">
           <Icon name="alert" class="w-5 h-5" />
@@ -37,7 +35,6 @@
 
       <template v-else>
 
-        <!-- ============ Header ============ -->
         <header class="flex items-start justify-between gap-4 mb-8">
           <div class="flex items-center gap-3 min-w-0">
             <div class="w-14 h-14 rounded-2xl bg-brand/10 text-brand flex items-center justify-center text-2xl font-bold shrink-0">
@@ -64,14 +61,13 @@
           </div>
           <button
             @click="goBack"
-            class="shrink-0 inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-sm text-navy/70 hover:text-brand hover:border-brand/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+            class="shrink-0 inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-navy/70 hover:text-brand hover:border-brand/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
           >
             <Icon name="arrow-right" class="w-4 h-4" />
             <span>رجوع</span>
           </button>
         </header>
 
-        <!-- ============ Success ============ -->
         <transition name="fade">
           <div
             v-if="successMessage"
@@ -83,9 +79,8 @@
           </div>
         </transition>
 
-        <!-- ============ Available challenges ============ -->
         <section
-          class="rounded-2xl border border-border bg-white mb-6"
+          class="rounded-2xl border border-border bg-card mb-6"
           aria-labelledby="available-title"
         >
           <div class="flex items-center justify-between px-5 sm:px-6 pt-5 pb-4 border-b border-border">
@@ -96,7 +91,6 @@
             </h2>
           </div>
 
-          <!-- Empty -->
           <div v-if="availableChallenges.length === 0" class="px-5 sm:px-6 py-10 text-center">
             <div class="mx-auto mb-3 w-12 h-12 rounded-full bg-page text-navy/40 flex items-center justify-center">
               <Icon name="trophy" class="w-5 h-5" />
@@ -105,12 +99,11 @@
             <p class="text-xs text-navy/40 mt-1">تابع لما الأدمن يضيف تحديات جديدة</p>
           </div>
 
-          <!-- Cards -->
           <div v-else class="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
             <article
               v-for="c in availableChallenges"
               :key="c.id"
-              class="group rounded-xl border border-border bg-white p-4 hover:border-brand/50 hover:shadow-sm transition-all duration-200"
+              class="group rounded-xl border border-border bg-card p-4 hover:border-brand/50 hover:shadow-sm transition-all duration-200"
             >
               <div class="flex items-start justify-between gap-2 mb-3">
                 <div class="flex items-center gap-2.5 min-w-0">
@@ -162,9 +155,8 @@
           </div>
         </section>
 
-        <!-- ============ My challenges ============ -->
         <section
-          class="rounded-2xl border border-border bg-white"
+          class="rounded-2xl border border-border bg-card"
           aria-labelledby="mine-title"
         >
           <div class="flex items-center justify-between px-5 sm:px-6 pt-5 pb-4 border-b border-border">
@@ -175,7 +167,6 @@
             </h2>
           </div>
 
-          <!-- Empty -->
           <div v-if="myChallenges.length === 0" class="px-5 sm:px-6 py-10 text-center">
             <div class="mx-auto mb-3 w-12 h-12 rounded-full bg-page text-navy/40 flex items-center justify-center">
               <Icon name="trophy" class="w-5 h-5" />
@@ -184,7 +175,6 @@
             <p class="text-xs text-navy/40 mt-1">اختار تحدي من فوق وابدأ</p>
           </div>
 
-          <!-- List -->
           <ul v-else class="divide-y divide-border">
             <li
               v-for="gc in myChallenges"
@@ -211,7 +201,6 @@
                 </span>
               </div>
 
-              <!-- Points (approved) -->
               <div
                 v-if="gc.status === 'approved'"
                 class="mt-3 flex items-center gap-2 text-sm"
@@ -227,13 +216,11 @@
                 </div>
               </div>
 
-              <!-- Pending -->
               <p v-if="gc.status === 'pending'" class="mt-2.5 text-xs text-gold inline-flex items-center gap-1.5">
                 <Icon name="clock" class="w-3.5 h-3.5" />
                 بانتظار موافقة الأدمن
               </p>
 
-              <!-- Rejected -->
               <p v-if="gc.status === 'rejected'" class="mt-2.5 text-xs text-danger inline-flex items-center gap-1.5">
                 <Icon name="x" class="w-3.5 h-3.5" />
                 تم رفض الاشتراك
@@ -251,7 +238,6 @@ import { ref, computed, onMounted, h } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api/client'
 
-/* ================= Icon component ================= */
 const ICONS = {
   plus: 'M12 5v14M5 12h14',
   check: 'M20 6 9 17l-5-5',
@@ -284,7 +270,6 @@ const Icon = {
   },
 }
 
-/* ================= State ================= */
 const route = useRoute()
 const router = useRouter()
 const group = ref(null)
@@ -294,7 +279,6 @@ const loading = ref(true)
 const joining = ref(null)
 const successMessage = ref('')
 
-/* ================= Computed ================= */
 const myChallenges = computed(() =>
   groupChallenges.value
     .filter((gc) => gc.group_id === group.value?.id)
@@ -317,7 +301,6 @@ const availableChallenges = computed(() => {
 const approvedCount = computed(() => myChallenges.value.filter((gc) => gc.status === 'approved').length)
 const pendingCount = computed(() => myChallenges.value.filter((gc) => gc.status === 'pending').length)
 
-/* ================= Helpers ================= */
 function formatDate(d) {
   if (!d) return '—'
   return new Date(d).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })
@@ -343,7 +326,6 @@ function goBack() {
   else router.push('/groups')
 }
 
-/* ================= Actions ================= */
 async function joinChallenge(challenge) {
   if (!confirm(`الاشتراك في تحدي "${challenge.name}"؟`)) return
   joining.value = challenge.id

@@ -2,7 +2,6 @@
   <div class="min-h-screen bg-page" dir="rtl">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
 
-      <!-- ============ Loading skeleton ============ -->
       <div v-if="loading" class="space-y-6 animate-pulse" aria-busy="true" aria-live="polite">
         <div class="flex items-center gap-4">
           <div class="w-16 h-16 rounded-2xl bg-navy/5"></div>
@@ -14,15 +13,12 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div v-for="i in 4" :key="i" class="h-20 rounded-2xl bg-navy/5"></div>
         </div>
-        <div class="h-32 rounded-2xl bg-navy/5"></div>
-        <div class="h-40 rounded-2xl bg-navy/5"></div>
         <span class="sr-only">جارٍ التحميل...</span>
       </div>
 
-      <!-- ============ Not found ============ -->
       <div
         v-else-if="!servant"
-        class="rounded-2xl border border-border bg-white p-8 text-center"
+        class="rounded-2xl border border-border bg-card p-8 text-center"
       >
         <div class="mx-auto mb-3 w-12 h-12 rounded-full bg-danger/10 text-danger flex items-center justify-center">
           <Icon name="alert" class="w-5 h-5" />
@@ -40,7 +36,6 @@
 
       <template v-else>
 
-        <!-- ============ Header ============ -->
         <header class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
           <div class="flex items-center gap-3 min-w-0">
             <div
@@ -74,14 +69,13 @@
           </div>
           <button
             @click="goBack"
-            class="shrink-0 inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-sm text-navy/70 hover:text-brand hover:border-brand/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+            class="shrink-0 inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-navy/70 hover:text-brand hover:border-brand/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
           >
             <Icon name="arrow-right" class="w-4 h-4" />
             رجوع
           </button>
         </header>
 
-        <!-- ============ Stats ============ -->
         <section
           class="grid grid-cols-2 md:grid-cols-4 gap-px rounded-2xl overflow-hidden border border-border bg-border mb-5"
           aria-label="إحصائيات الخادم"
@@ -92,9 +86,8 @@
           <Stat label="عمليات" :value="myActivity.length" tone="muted" />
         </section>
 
-        <!-- ============ Contact info ============ -->
         <section
-          class="rounded-2xl border border-border bg-white p-5 sm:p-6 mb-5"
+          class="rounded-2xl border border-border bg-card p-5 sm:p-6 mb-5"
           aria-labelledby="contact-title"
         >
           <h2 id="contact-title" class="text-base font-semibold text-navy mb-4 flex items-center gap-2">
@@ -110,9 +103,8 @@
           </div>
         </section>
 
-        <!-- ============ Groups ============ -->
         <section
-          class="rounded-2xl border border-border bg-white mb-5"
+          class="rounded-2xl border border-border bg-card mb-5"
           aria-labelledby="groups-title"
         >
           <div class="flex items-center justify-between px-5 sm:px-6 pt-5 pb-4 border-b border-border">
@@ -143,9 +135,8 @@
           </div>
         </section>
 
-        <!-- ============ Members ============ -->
         <section
-          class="rounded-2xl border border-border bg-white"
+          class="rounded-2xl border border-border bg-card"
           aria-labelledby="members-title"
         >
           <div class="flex items-center justify-between px-5 sm:px-6 pt-5 pb-4 border-b border-border">
@@ -197,7 +188,6 @@ import { ref, computed, onMounted, h } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api/client'
 
-/* ================= Icon component ================= */
 const ICONS = {
   'arrow-right': 'M9 5l7 7-7 7',
   alert: 'M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01',
@@ -231,7 +221,6 @@ const Icon = {
   },
 }
 
-/* ================= Stat component ================= */
 const Stat = {
   props: {
     label: String,
@@ -247,7 +236,7 @@ const Stat = {
       muted: 'text-navy/40',
     }
     return () =>
-      h('div', { class: 'bg-white px-4 py-3.5' }, [
+      h('div', { class: 'bg-card px-4 py-3.5' }, [
         h('p', { class: 'text-xs text-navy/50 mb-1' }, props.label),
         h(
           'p',
@@ -258,7 +247,6 @@ const Stat = {
   },
 }
 
-/* ================= Info component ================= */
 const Info = {
   props: {
     label: String,
@@ -295,7 +283,6 @@ const Info = {
   },
 }
 
-/* ================= State ================= */
 const route = useRoute()
 const router = useRouter()
 const servant = ref(null)
@@ -303,7 +290,6 @@ const allMembers = ref([])
 const allGroups = ref([])
 const loading = ref(true)
 
-/* ================= Computed ================= */
 const myMembers = computed(() =>
   allMembers.value.filter((m) => m.servant_id === servant.value?.id)
 )
@@ -315,7 +301,6 @@ const myGroups = computed(() =>
 const myNotesCount = computed(() => 0)
 const myActivity = computed(() => [])
 
-/* ================= Helpers ================= */
 function statusColor(status) {
   return {
     active:     { bg: 'bg-success/10', text: 'text-success', label: 'نشط' },
@@ -357,7 +342,6 @@ function goBack() {
   else router.push('/servants')
 }
 
-/* ================= Actions ================= */
 async function loadData() {
   loading.value = true
   try {

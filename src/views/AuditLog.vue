@@ -2,7 +2,6 @@
   <div class="min-h-screen bg-page py-8 px-4" dir="rtl">
     <div class="max-w-5xl mx-auto">
 
-      <!-- Header with back button -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div class="flex items-start gap-3">
           <button
@@ -28,14 +27,18 @@
         </div>
         <div class="flex gap-2 self-start sm:self-auto">
           <button
-            @click="clear"
-            :disabled="logs.length === 0"
-            class="px-4 py-2 rounded-lg border border-danger/30 bg-danger/10 text-danger text-sm font-medium hover:bg-danger/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center gap-1.5"
+            @click="refresh"
+            :disabled="loading"
+            class="px-4 py-2 rounded-lg border border-border bg-card text-navy/70 text-sm font-medium hover:bg-page disabled:opacity-50 transition-colors flex items-center gap-1.5"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            <svg v-if="loading" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
             </svg>
-            مسح السجل
+            <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            تحديث
           </button>
         </div>
       </div>
@@ -57,12 +60,11 @@
           <select v-model="filterAction" class="input">
             <option value="">كل العمليات</option>
             <option v-for="(info, key) in ACTION_LABELS" :key="key" :value="key">
-              {{ info.label }}
+              {{ info.icon }} {{ info.label }}
             </option>
           </select>
         </div>
 
-        <!-- Active filter chip -->
         <div v-if="search || filterAction" class="mt-3 flex items-center gap-2 flex-wrap text-xs">
           <span class="text-navy/50">فلاتر نشطة:</span>
           <span v-if="search" class="badge">{{ search }}</span>
@@ -71,38 +73,45 @@
         </div>
       </div>
 
-      <!-- Logs -->
-      <div class="card p-0 overflow-hidden">
-        <!-- Empty state -->
-        <div v-if="filtered.length === 0" class="py-14 text-center">
-          <div class="flex flex-col items-center gap-3">
-            <div class="w-14 h-14 rounded-full bg-navy/5 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-navy/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <p class="text-navy/60 font-medium">
-              {{ logs.length === 0 ? 'مفيش سجلات لسه' : 'لا توجد نتائج مطابقة' }}
-            </p>
-            <button
-              v-if="logs.length > 0"
-              @click="clearFilters"
-              class="text-brand hover:underline text-sm font-medium"
-            >
-              مسح الفلاتر →
-            </button>
-          </div>
-        </div>
+      <!-- Loading -->
+      <div v-if="loading && logs.length === 0" class="card text-center py-16 text-navy/50">
+        <svg class="animate-spin w-6 h-6 mx-auto mb-3 text-navy/40" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+        </svg>
+        جارٍ التحميل...
+      </div>
 
-        <!-- Timeline list -->
-        <ul v-else class="divide-y divide-border">
+      <!-- Empty -->
+      <div v-else-if="filtered.length === 0" class="card py-14 text-center">
+        <div class="flex flex-col items-center gap-3">
+          <div class="w-14 h-14 rounded-full bg-navy/5 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-navy/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <p class="text-navy/60 font-medium">
+            {{ logs.length === 0 ? 'مفيش سجلات لسه' : 'لا توجد نتائج مطابقة' }}
+          </p>
+          <button
+            v-if="logs.length > 0"
+            @click="clearFilters"
+            class="text-brand hover:underline text-sm font-medium"
+          >
+            مسح الفلاتر →
+          </button>
+        </div>
+      </div>
+
+      <!-- List -->
+      <div v-else class="card p-0 overflow-hidden">
+        <ul class="divide-y divide-border">
           <li
             v-for="log in filtered"
             :key="log.id"
             class="p-4 hover:bg-page/60 transition-colors duration-150"
           >
             <div class="flex items-start gap-3">
-              <!-- Icon bubble -->
               <div
                 class="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg"
                 :class="actionInfo(log.action).bubble"
@@ -110,7 +119,6 @@
                 {{ actionInfo(log.action).icon }}
               </div>
 
-              <!-- Content -->
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap mb-1">
                   <span class="font-medium text-sm" :class="actionInfo(log.action).color">
@@ -118,18 +126,28 @@
                   </span>
                   <span class="text-xs text-navy/30">•</span>
                   <span class="text-xs text-navy/70 font-medium">{{ log.user_name }}</span>
-                  <span class="text-xs text-navy/40 hidden sm:inline">({{ log.user_email }})</span>
+                  <span class="text-xs text-navy/40 hidden sm:inline" dir="ltr">({{ log.user_email }})</span>
                 </div>
 
+                <!-- Details -->
                 <p v-if="log.details?.name" class="text-sm text-navy truncate">
                   {{ log.details.name }}
+                </p>
+                <p v-else-if="log.details?.email" class="text-sm text-navy truncate" dir="ltr">
+                  {{ log.details.email }}
+                </p>
+                <p v-else-if="log.details?.role" class="text-sm text-navy truncate">
+                  الدور: {{ log.details.role }}
+                </p>
+                <p v-else-if="log.details?.status" class="text-sm text-navy truncate">
+                  الحالة: {{ log.details.status }}
                 </p>
 
                 <div class="flex items-center gap-1.5 text-xs text-navy/50 mt-1.5">
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  {{ formatDateTime(log.timestamp) }}
+                  {{ formatDateTime(log.created_at) }}
                 </div>
               </div>
             </div>
@@ -143,11 +161,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getLogs, clearLogs, ACTION_LABELS } from '../utils/auditLog'
+import { getLogs, ACTION_LABELS } from '../utils/auditLog'
 
 const router = useRouter()
 
 const logs = ref([])
+const loading = ref(false)
 const search = ref('')
 const filterAction = ref('')
 
@@ -156,14 +175,13 @@ const filtered = computed(() => {
   return logs.value.filter((l) => {
     if (filterAction.value && l.action !== filterAction.value) return false
     if (q) {
-      const hay = `${l.user_name} ${l.user_email} ${l.action} ${l.details?.name || ''}`.toLowerCase()
+      const hay = `${l.user_name} ${l.user_email} ${l.action} ${l.details?.name || ''} ${l.details?.email || ''}`.toLowerCase()
       if (!hay.includes(q)) return false
     }
     return true
   })
 })
 
-// Fallback bubble class in case ACTION_LABELS doesn't include one
 const DEFAULT_BUBBLE = 'bg-navy/10 text-navy'
 
 function actionInfo(action) {
@@ -192,15 +210,13 @@ function goBack() {
   else router.push('/')
 }
 
-function clear() {
-  if (!confirm('هتمسح كل سجل النشاط. متأكد؟')) return
-  clearLogs()
-  logs.value = []
+async function refresh() {
+  loading.value = true
+  logs.value = await getLogs()
+  loading.value = false
 }
 
-onMounted(() => {
-  logs.value = getLogs()
-})
+onMounted(refresh)
 </script>
 
 <style scoped>
@@ -209,8 +225,8 @@ onMounted(() => {
   align-items: center;
   padding: 0.125rem 0.5rem;
   border-radius: 9999px;
-  background-color: rgba(30, 41, 59, 0.08);
-  color: #1e293b;
+  background-color: rgb(var(--color-navy) / 0.08);
+  color: rgb(var(--color-navy));
   font-size: 0.75rem;
   font-weight: 500;
 }

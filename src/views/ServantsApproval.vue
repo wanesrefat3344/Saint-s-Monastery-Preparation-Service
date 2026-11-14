@@ -2,16 +2,12 @@
   <div class="min-h-screen bg-page" dir="rtl">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
 
-      <!-- ============ Header ============ -->
       <header class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
         <div class="min-w-0">
           <p class="text-xs text-navy/50 mb-1">مراجعة</p>
           <h1 class="text-2xl font-bold text-navy truncate">طلبات إضافة خدام</h1>
           <p class="text-sm text-navy/60 mt-1">
-            <span
-              v-if="pendingServants.length > 0"
-              class="text-gold font-medium tabular-nums"
-            >
+            <span v-if="pendingServants.length > 0" class="text-gold font-medium tabular-nums">
               {{ pendingServants.length }}
             </span>
             <span v-else class="tabular-nums">0</span>
@@ -20,14 +16,13 @@
         </div>
         <button
           @click="goBack"
-          class="shrink-0 inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-sm text-navy/70 hover:text-brand hover:border-brand/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+          class="shrink-0 inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-navy/70 hover:text-brand hover:border-brand/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
         >
           <Icon name="arrow-right" class="w-4 h-4" />
           رجوع
         </button>
       </header>
 
-      <!-- ============ Success ============ -->
       <transition name="fade">
         <div
           v-if="successMessage"
@@ -39,10 +34,9 @@
         </div>
       </transition>
 
-      <!-- ============ Empty ============ -->
       <div
         v-if="pendingServants.length === 0"
-        class="rounded-2xl border border-border bg-white p-8 text-center"
+        class="rounded-2xl border border-border bg-card p-8 text-center"
       >
         <div class="mx-auto mb-3 w-12 h-12 rounded-full bg-success/10 text-success flex items-center justify-center">
           <Icon name="check" class="w-6 h-6" />
@@ -51,12 +45,11 @@
         <p class="text-sm text-navy/60">كل الطلبات تمت معالجتها</p>
       </div>
 
-      <!-- ============ Pending list ============ -->
       <div v-else class="space-y-3">
         <article
           v-for="s in pendingServants"
           :key="s.id"
-          class="rounded-2xl border border-border bg-white p-5 hover:shadow-sm transition-shadow duration-200"
+          class="rounded-2xl border border-border bg-card p-5 hover:shadow-sm transition-shadow duration-200"
         >
           <div class="flex items-start justify-between gap-3 mb-3">
             <div class="flex items-center gap-3 min-w-0">
@@ -73,7 +66,6 @@
             </span>
           </div>
 
-          <!-- Details -->
           <div class="rounded-xl bg-page/60 border border-border/60 p-3.5 mb-4 space-y-2 text-sm">
             <p class="flex items-center gap-2 text-navy/70">
               <Icon name="user" class="w-4 h-4 text-navy/40 shrink-0" />
@@ -99,7 +91,6 @@
             </p>
           </div>
 
-          <!-- Actions -->
           <div class="flex justify-end gap-2">
             <button
               @click="reject(s)"
@@ -119,10 +110,9 @@
         </article>
       </div>
 
-      <!-- ============ Rejected ============ -->
       <section
         v-if="rejectedServants.length > 0"
-        class="rounded-2xl border border-border bg-white mt-6"
+        class="rounded-2xl border border-border bg-card mt-6"
         aria-labelledby="rejected-title"
       >
         <div class="flex items-center justify-between px-5 sm:px-6 pt-5 pb-4 border-b border-border">
@@ -172,7 +162,6 @@ import { useRouter } from 'vue-router'
 import { DEMO_MODE } from '../config'
 import { logActivity } from '../utils/auditLog'
 
-/* ================= Icon component ================= */
 const ICONS = {
   'arrow-right': 'M9 5l7 7-7 7',
   check: 'M20 6 9 17l-5-5',
@@ -206,13 +195,11 @@ const Icon = {
   },
 }
 
-/* ================= State ================= */
 const router = useRouter()
 const user = JSON.parse(localStorage.getItem('user') || '{}')
 const servants = ref([])
 const successMessage = ref('')
 
-/* ================= Computed ================= */
 const pendingServants = computed(() =>
   servants.value
     .filter((s) => s.status === 'pending')
@@ -223,7 +210,6 @@ const rejectedServants = computed(() =>
   servants.value.filter((s) => s.status === 'rejected')
 )
 
-/* ================= Helpers ================= */
 function roleLabel(role) {
   return {
     admin: 'أدمن',
@@ -259,7 +245,6 @@ function goBack() {
   else router.push('/servants')
 }
 
-/* ================= Data ================= */
 function loadData() {
   servants.value = JSON.parse(localStorage.getItem('demo_servants') || '[]')
 }
@@ -285,7 +270,6 @@ function syncToUsers() {
   localStorage.setItem('demo_users', JSON.stringify(users))
 }
 
-/* ================= Actions ================= */
 function approve(s) {
   if (!confirm(`موافقة على إضافة "${s.name}"؟`)) return
 

@@ -57,34 +57,33 @@
       </div>
     </div>
 
-    <!-- Modal إضافة -->
-    <div v-if="showModal" class="fixed inset-0 bg-navy/40 flex items-center justify-center px-4 z-50 overflow-y-auto">
-      <div class="bg-card rounded-xl shadow-lg w-full max-w-lg p-6 my-8">
+    <div v-if="showModal" class="fixed inset-0 bg-black/50 flex items-center justify-center px-4 z-50 overflow-y-auto">
+      <div class="bg-card rounded-xl shadow-lg w-full max-w-lg p-6 my-8 border border-border">
         <h2 class="text-lg font-semibold text-navy mb-4">إضافة سفر جديد</h2>
         <form @submit.prevent="save" class="space-y-3">
           <div>
-            <label class="block text-sm font-medium mb-1">نوع العهد</label>
+            <label class="block text-sm font-medium mb-1 text-navy">نوع العهد</label>
             <div class="flex gap-2">
               <button type="button" @click="form.book_type = 'old'" class="flex-1 px-3 py-2 rounded-lg text-sm transition" :class="form.book_type === 'old' ? 'bg-brand text-white' : 'bg-page text-navy'">📜 عهد قديم</button>
               <button type="button" @click="form.book_type = 'new'" class="flex-1 px-3 py-2 rounded-lg text-sm transition" :class="form.book_type === 'new' ? 'bg-brand text-white' : 'bg-page text-navy'">✝️ عهد جديد</button>
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">اسم السفر <span class="text-danger">*</span></label>
+            <label class="block text-sm font-medium mb-1 text-navy">اسم السفر <span class="text-danger">*</span></label>
             <input v-model.trim="form.book_name" class="input" :class="{ 'input-error': errors.book_name }" />
             <p v-if="errors.book_name" class="error-text">{{ errors.book_name }}</p>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">عدد الأصحاحات <span class="text-danger">*</span></label>
+            <label class="block text-sm font-medium mb-1 text-navy">عدد الأصحاحات <span class="text-danger">*</span></label>
             <input v-model.number="form.total_chapters" type="number" min="1" class="input" :class="{ 'input-error': errors.total_chapters }" />
             <p v-if="errors.total_chapters" class="error-text">{{ errors.total_chapters }}</p>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">تاريخ البداية</label>
+            <label class="block text-sm font-medium mb-1 text-navy">تاريخ البداية</label>
             <input v-model="form.start_date" type="date" class="input" />
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">تاريخ النهاية</label>
+            <label class="block text-sm font-medium mb-1 text-navy">تاريخ النهاية</label>
             <input v-model="form.end_date" type="date" class="input" />
           </div>
           <div class="flex justify-end gap-2 pt-2">

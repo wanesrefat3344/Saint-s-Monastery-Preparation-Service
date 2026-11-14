@@ -2,7 +2,6 @@
   <div class="min-h-screen bg-page" dir="rtl">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
 
-      <!-- الهيدر -->
       <header class="flex items-start justify-between gap-4 mb-8">
         <div class="min-w-0">
           <p class="text-xs text-navy/50 mb-1">{{ todayLabel }}</p>
@@ -11,42 +10,36 @@
           </h1>
           <p class="text-sm text-navy/60 mt-1">{{ roleLabel }}</p>
         </div>
-        <button
-          @click="logout"
-          class="shrink-0 inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-sm text-navy/70 hover:text-danger hover:border-danger/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-        >
-          <Icon name="logout" class="w-4 h-4" />
-          <span>خروج</span>
-        </button>
+        <div class="flex items-center gap-2 shrink-0">
+          <ThemeToggle />
+          <button
+            @click="logout"
+            class="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-navy/70 hover:text-danger hover:border-danger/40 transition-colors"
+          >
+            <Icon name="logout" class="w-4 h-4" />
+            <span>خروج</span>
+          </button>
+        </div>
       </header>
 
-      <!-- التحميل -->
-      <div v-if="loading" class="space-y-6 animate-pulse" aria-busy="true" aria-live="polite">
+      <div v-if="loading" class="space-y-6 animate-pulse">
         <div class="h-28 rounded-2xl bg-navy/5"></div>
         <div class="h-24 rounded-2xl bg-navy/5"></div>
         <div class="h-40 rounded-2xl bg-navy/5"></div>
-        <span class="sr-only">جارٍ التحميل...</span>
       </div>
 
-      <!-- خطأ -->
       <div v-else-if="error" class="rounded-2xl border border-danger/30 bg-danger/5 p-6 text-center">
         <p class="text-navy font-medium mb-1">مقدرناش نحمّل البيانات</p>
         <p class="text-sm text-navy/60 mb-4">اتأكد من الاتصال بالنت وجرّب تاني.</p>
-        <button
-          @click="loadData"
-          class="rounded-lg bg-brand px-4 py-2 text-sm text-white hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-        >
-          إعادة المحاولة
-        </button>
+        <button @click="loadData" class="rounded-lg bg-brand px-4 py-2 text-sm text-white hover:opacity-90">إعادة المحاولة</button>
       </div>
 
       <template v-else>
 
-        <!-- صحة الخدمة -->
-        <section class="rounded-2xl border border-border bg-white p-5 sm:p-6 mb-6" aria-labelledby="health-title">
+        <section class="rounded-2xl border border-border bg-card p-5 sm:p-6 mb-6">
           <div class="flex items-center justify-between gap-4">
             <div class="min-w-0">
-              <h2 id="health-title" class="flex items-center gap-2 text-base font-semibold text-navy">
+              <h2 class="flex items-center gap-2 text-base font-semibold text-navy">
                 <span class="inline-block w-2.5 h-2.5 rounded-full" :class="healthColor.dot"></span>
                 صحة الخدمة: {{ healthLabel }}
               </h2>
@@ -56,43 +49,30 @@
               {{ healthScore }}<span class="text-sm font-normal text-navy/40">/100</span>
             </p>
           </div>
-          <div
-            class="mt-4 h-1.5 w-full rounded-full bg-navy/5 overflow-hidden"
-            role="progressbar"
-            :aria-valuenow="healthScore"
-            aria-valuemin="0"
-            aria-valuemax="100"
-          >
+          <div class="mt-4 h-1.5 w-full rounded-full bg-navy/5 overflow-hidden">
             <div class="h-full rounded-full transition-all duration-700" :class="healthColor.bar" :style="{ width: healthScore + '%' }"></div>
           </div>
         </section>
 
-        <!-- إحصائيات -->
-        <section class="grid grid-cols-2 md:grid-cols-4 gap-px rounded-2xl overflow-hidden border border-border bg-border mb-6" aria-label="إحصائيات">
+        <section class="grid grid-cols-2 md:grid-cols-4 gap-px rounded-2xl overflow-hidden border border-border bg-border mb-6">
           <Stat label="إجمالي المخدومين" :value="members.length" />
-          <Stat
-            label="حضور الأسبوع"
-            :value="`${attendanceRate}%`"
-            :tone="attendanceRate >= 70 ? 'ok' : 'danger'"
-          />
+          <Stat label="حضور الأسبوع" :value="`${attendanceRate}%`" :tone="attendanceRate >= 70 ? 'ok' : 'danger'" />
           <Stat label="غايبين 3 مرات" :value="consecutiveAbsent.length" :tone="consecutiveAbsent.length ? 'danger' : 'muted'" />
           <Stat label="محتاجين افتقاد" :value="needsFollowupCount" :tone="needsFollowupCount ? 'gold' : 'muted'" />
         </section>
 
-        <!-- محتاج انتباهك -->
-        <section class="rounded-2xl border border-border bg-white mb-8" aria-labelledby="attention-title">
+        <section class="rounded-2xl border border-border bg-card mb-8">
           <div class="flex items-center justify-between px-5 sm:px-6 pt-5">
-            <h2 id="attention-title" class="text-base font-semibold text-navy">محتاج انتباهك</h2>
+            <h2 class="text-base font-semibold text-navy">محتاج انتباهك</h2>
             <router-link
               v-if="needsFollowupCount > 0"
               to="/followups"
-              class="text-sm text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded"
+              class="text-sm text-brand hover:underline"
             >
               فتح الافتقاد ({{ needsFollowupCount }})
             </router-link>
           </div>
 
-          <!-- كله تمام -->
           <div v-if="!alerts.length" class="px-5 sm:px-6 py-8 text-center">
             <div class="mx-auto mb-3 w-10 h-10 rounded-full bg-success/10 text-success flex items-center justify-center">
               <Icon name="check" class="w-5 h-5" />
@@ -112,42 +92,13 @@
                 <span>{{ a.message }}</span>
               </li>
             </ul>
-
-            <div v-if="consecutiveAbsent.length">
-              <p class="text-xs text-navy/50 mb-1">غابوا 3 مرات متتالية</p>
-              <ul class="text-sm">
-                <li
-                  v-for="m in visibleAbsent"
-                  :key="m.id"
-                  class="flex items-center justify-between gap-3 border-b border-border last:border-0 py-2.5"
-                >
-                  <router-link
-                    :to="`/members/${m.id}`"
-                    class="text-navy font-medium hover:text-brand truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded"
-                  >
-                    {{ m.full_name }}
-                  </router-link>
-                  <span class="shrink-0 text-xs text-danger bg-danger/5 rounded-full px-2.5 py-1">
-                    غايب {{ m.absentCount }} اجتماع
-                  </span>
-                </li>
-              </ul>
-              <button
-                v-if="consecutiveAbsent.length > 5"
-                @click="showAllAbsent = !showAllAbsent"
-                class="mt-2 text-sm text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded"
-              >
-                {{ showAllAbsent ? 'عرض أقل' : `عرض الكل (${consecutiveAbsent.length})` }}
-              </button>
-            </div>
           </div>
         </section>
 
-        <!-- الإجراءات الأساسية -->
-        <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8" aria-label="إجراءات سريعة">
+        <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           <router-link
             to="/attendance"
-            class="group flex items-center gap-4 rounded-2xl bg-brand text-white p-5 hover:opacity-95 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2"
+            class="group flex items-center gap-4 rounded-2xl bg-brand text-white p-5 hover:opacity-95 transition-opacity"
           >
             <span class="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center">
               <Icon name="check" class="w-5 h-5" />
@@ -160,7 +111,7 @@
 
           <router-link
             to="/members/new"
-            class="group flex items-center gap-4 rounded-2xl border border-border bg-white p-5 hover:border-brand/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+            class="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 hover:border-brand/50 transition-colors"
           >
             <span class="w-11 h-11 rounded-xl bg-brand/10 text-brand flex items-center justify-center">
               <Icon name="plus" class="w-5 h-5" />
@@ -171,23 +122,21 @@
             </span>
           </router-link>
 
-          <!-- جديد: الإعدادات للأدمن -->
           <router-link
             v-if="isAdmin"
-            to="/settings"
-            class="group flex items-center gap-4 rounded-2xl border border-border bg-white p-5 hover:border-brand/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+            to="/users"
+            class="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 hover:border-brand/50 transition-colors"
           >
-            <span class="w-11 h-11 rounded-xl bg-navy/5 text-navy/70 group-hover:bg-brand/10 group-hover:text-brand transition-colors flex items-center justify-center">
-              <Icon name="settings" class="w-5 h-5" />
+            <span class="w-11 h-11 rounded-xl bg-gold/10 text-gold group-hover:bg-brand/10 group-hover:text-brand transition-colors flex items-center justify-center">
+              <Icon name="users" class="w-5 h-5" />
             </span>
             <span>
-              <span class="block font-semibold text-navy group-hover:text-brand transition-colors">الإعدادات</span>
-              <span class="block text-sm text-navy/60 mt-0.5">النسخ الاحتياطي والبيانات</span>
+              <span class="block font-semibold text-navy group-hover:text-brand transition-colors">إدارة الحسابات</span>
+              <span class="block text-sm text-navy/60 mt-0.5">المستخدمين والصلاحيات</span>
             </span>
           </router-link>
         </section>
 
-        <!-- باقي الأقسام -->
         <section v-for="group in linkGroups" :key="group.title" class="mb-8 last:mb-0">
           <h2 class="text-sm font-semibold text-navy/60 mb-3">{{ group.title }}</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -195,7 +144,7 @@
               v-for="l in group.items"
               :key="l.to"
               :to="l.to"
-              class="group relative flex items-center gap-3 rounded-xl border border-border bg-white px-4 py-3.5 hover:border-brand/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+              class="group relative flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3.5 hover:border-brand/50 transition-colors"
             >
               <span class="w-9 h-9 rounded-lg bg-page text-navy/70 group-hover:bg-brand/10 group-hover:text-brand transition-colors flex items-center justify-center">
                 <Icon :name="l.icon" class="w-[18px] h-[18px]" />
@@ -223,8 +172,8 @@
 import { ref, computed, onMounted, h } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/client'
+import ThemeToggle from '../composables/ThemeToggle.vue'
 
-/* ───────── أيقونات بسيطة (stroke) ───────── */
 const ICONS = {
   plus: 'M12 5v14M5 12h14',
   list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
@@ -244,42 +193,30 @@ const Icon = {
   props: { name: String },
   setup(props) {
     return () =>
-      h(
-        'svg',
-        {
-          viewBox: '0 0 24 24',
-          fill: 'none',
-          stroke: 'currentColor',
-          'stroke-width': 1.8,
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-          'aria-hidden': 'true',
-        },
-        [h('path', { d: ICONS[props.name] || '' })]
-      )
+      h('svg', {
+        viewBox: '0 0 24 24',
+        fill: 'none',
+        stroke: 'currentColor',
+        'stroke-width': 1.8,
+        'stroke-linecap': 'round',
+        'stroke-linejoin': 'round',
+        'aria-hidden': 'true',
+      }, [h('path', { d: ICONS[props.name] || '' })])
   },
 }
 
-/* ───────── خانة الإحصائية ───────── */
 const Stat = {
   props: { label: String, value: [String, Number], tone: { type: String, default: 'default' } },
   setup(props) {
-    const toneClass = {
-      default: 'text-navy',
-      ok: 'text-success',
-      danger: 'text-danger',
-      gold: 'text-gold',
-      muted: 'text-navy/40',
-    }
+    const toneClass = { default: 'text-navy', ok: 'text-success', danger: 'text-danger', gold: 'text-gold', muted: 'text-navy/40' }
     return () =>
-      h('div', { class: 'bg-white px-5 py-4' }, [
+      h('div', { class: 'bg-card px-5 py-4' }, [
         h('p', { class: 'text-xs text-navy/50 mb-1.5' }, props.label),
         h('p', { class: ['text-2xl font-bold tabular-nums', toneClass[props.tone] || toneClass.default] }, String(props.value)),
       ])
   },
 }
 
-/* ───────── الحالة ───────── */
 const router = useRouter()
 const user = JSON.parse(localStorage.getItem('user') || '{}')
 const isAdmin = user.role === 'admin'
@@ -289,14 +226,19 @@ const followupsMap = ref({})
 const attendanceData = ref({})
 const loading = ref(false)
 const error = ref(false)
-const showAllAbsent = ref(false)
 
 const todayLabel = new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })
-const roleLabel = computed(() =>
-  user?.role === 'admin' ? 'أدمن' : user?.role === 'reader' ? 'مسجل قراءات' : 'خادم'
-)
+const roleLabel = computed(() => {
+  if (!user?.role) return 'مستخدم'
+  return {
+    admin: 'أدمن',
+    servant: 'خادم',
+    co_servant: 'خادم مساعد',
+    group_leader: 'ليدر مجموعة',
+    reader: 'مسجل قراءات',
+  }[user.role] || 'خادم'
+})
 
-/* ───────── الحسابات ───────── */
 const needsFollowupList = computed(() => {
   const today = new Date()
   const result = []
@@ -329,7 +271,6 @@ const consecutiveAbsent = computed(() => {
   const dates = Object.keys(attendanceData.value).map((k) => k.split('_')[0])
     .filter((v, i, a) => a.indexOf(v) === i).sort().reverse().slice(0, 5)
   if (dates.length < 3) return []
-
   const result = []
   members.value.forEach((m) => {
     let count = 0
@@ -345,10 +286,6 @@ const consecutiveAbsent = computed(() => {
   return result.sort((a, b) => b.absentCount - a.absentCount)
 })
 
-const visibleAbsent = computed(() =>
-  showAllAbsent.value ? consecutiveAbsent.value : consecutiveAbsent.value.slice(0, 5)
-)
-
 const healthScore = computed(() => {
   let score = 100
   if (attendanceRate.value < 70) score -= (70 - attendanceRate.value) * 0.5
@@ -357,12 +294,8 @@ const healthScore = computed(() => {
   return Math.max(0, Math.min(100, Math.round(score)))
 })
 
-const healthLabel = computed(() =>
-  healthScore.value >= 80 ? 'ممتازة' : healthScore.value >= 60 ? 'جيدة' : healthScore.value >= 40 ? 'تحتاج متابعة' : 'في خطر'
-)
-const healthMessage = computed(() =>
-  healthScore.value >= 80 ? 'الخدمة ماشية كويس!' : healthScore.value >= 60 ? 'فيه نقاط محتاجة متابعة' : 'فيه مشاكل محتاجة تدخل'
-)
+const healthLabel = computed(() => healthScore.value >= 80 ? 'ممتازة' : healthScore.value >= 60 ? 'جيدة' : healthScore.value >= 40 ? 'تحتاج متابعة' : 'في خطر')
+const healthMessage = computed(() => healthScore.value >= 80 ? 'الخدمة ماشية كويس!' : healthScore.value >= 60 ? 'فيه نقاط محتاجة متابعة' : 'فيه مشاكل محتاجة تدخل')
 const healthColor = computed(() =>
   healthScore.value >= 80
     ? { dot: 'bg-success', bar: 'bg-success', text: 'text-success' }
@@ -378,7 +311,6 @@ const alerts = computed(() => {
   return list
 })
 
-/* ───────── الروابط ───────── */
 const linkGroups = computed(() => {
   const groups = [
     {
@@ -386,6 +318,8 @@ const linkGroups = computed(() => {
       items: [
         { to: '/members', label: 'قائمة المخدومين', desc: 'عرض وبحث', icon: 'list' },
         { to: '/followups', label: 'الافتقاد', desc: 'متابعة المحتاجين', icon: 'phone', badge: needsFollowupCount.value || null },
+        { to: '/challenges', label: 'التحديات', desc: 'التحديات المتاحة', icon: 'trophy' }, // ✅ جديد — للكل
+        { to: '/groups', label: 'المجموعات', desc: 'مجموعاتي', icon: 'users' }, // ✅ جديد — للكل
         { to: '/readings', label: 'القراءات', desc: 'قراءات الإنجيل', icon: 'book' },
         { to: '/reports', label: 'التقارير', desc: 'إحصائيات', icon: 'chart' },
       ],
@@ -395,18 +329,27 @@ const linkGroups = computed(() => {
     groups.push({
       title: 'الإدارة',
       items: [
+        { to: '/users', label: 'الحسابات', desc: 'المستخدمين والصلاحيات', icon: 'user' },
         { to: '/servants', label: 'الخدام', desc: 'إدارة الخدام', icon: 'user' },
-        { to: '/groups', label: 'المجموعات', desc: 'إدارة المجموعات', icon: 'users' },
-        { to: '/challenges', label: 'التحديات', desc: 'إدارة التحديات', icon: 'trophy' },
+        { to: '/challenges-approval', label: 'موافقات التحديات', desc: 'طلبات الاشتراك', icon: 'trophy' },
         { to: '/audit-log', label: 'سجل النشاط', desc: 'كل العمليات', icon: 'list' },
         { to: '/settings', label: 'الإعدادات', desc: 'النسخ الاحتياطي والبيانات', icon: 'settings' },
       ],
     })
   }
+  // للخادم
+if (user.role !== 'admin') {
+  groups.unshift({
+    title: 'خدمتي',
+    items: [
+      { to: '/my-service', label: 'صفحتي', desc: 'مخدوميني وتحدياتي', icon: 'user' },
+      { to: '/team', label: 'الفريق', desc: 'الخدام المسؤولين', icon: 'users' },
+    ],
+  })
+}
   return groups
 })
 
-/* ───────── الأكشنز ───────── */
 function logout() {
   localStorage.removeItem('token')
   localStorage.removeItem('user')
@@ -423,14 +366,12 @@ async function loadData() {
       api.get('/attendance'),
     ])
     members.value = membersRes.data
-
     const fmap = {}
     followupsRes.data.forEach((f) => {
       if (!fmap[f.member_id]) fmap[f.member_id] = []
       fmap[f.member_id].push(f)
     })
     followupsMap.value = fmap
-
     const amap = {}
     attendanceRes.data.forEach((a) => {
       const key = `${a.date.slice(0, 10)}_${a.meeting_type}`

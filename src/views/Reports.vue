@@ -14,7 +14,13 @@
 
       <div class="card mb-4 flex items-center gap-2 flex-wrap">
         <span class="text-sm text-navy/60">آخر:</span>
-        <button v-for="n in [4, 8, 12]" :key="n" @click="weeksLimit = n" class="px-3 py-1 rounded text-xs" :class="weeksLimit === n ? 'bg-navy text-white' : 'bg-page text-navy'">{{ n }} أسابيع</button>
+        <button
+          v-for="n in [4, 8, 12]"
+          :key="n"
+          @click="weeksLimit = n"
+          class="px-3 py-1 rounded text-xs"
+          :class="weeksLimit === n ? 'bg-navy text-white' : 'bg-page text-navy'"
+        >{{ n }} أسابيع</button>
       </div>
 
       <div v-if="loading" class="card text-center py-16 text-navy/50">جارٍ التحميل...</div>

@@ -1,7 +1,6 @@
 <template>
   <div class="min-h-screen bg-page py-10 px-4" dir="rtl">
     <div class="max-w-4xl mx-auto">
-      <!-- الهيدر -->
       <div class="flex items-center justify-between mb-6">
         <div>
           <h1 class="text-2xl font-bold text-navy">ترشيحات الليدز</h1>
@@ -12,7 +11,6 @@
         <router-link to="/groups" class="btn-cancel text-sm">رجوع</router-link>
       </div>
 
-      <!-- رسالة نجاح -->
       <div
         v-if="successMessage"
         class="mb-4 rounded-lg bg-success/10 border border-success text-success px-4 py-3 text-sm"
@@ -20,14 +18,12 @@
         {{ successMessage }}
       </div>
 
-      <!-- مفيش ترشيحات -->
       <div v-if="pendingNominations.length === 0" class="card text-center py-16">
         <div class="text-4xl mb-3">👑</div>
         <p class="text-navy/60 mb-1">مفيش ترشيحات معلقة</p>
         <p class="text-xs text-navy/40">لما خادم يرشح ليدر لمجموعته، هيظهر هنا</p>
       </div>
 
-      <!-- الترشيحات -->
       <div v-else class="space-y-3">
         <div
           v-for="n in pendingNominations"
@@ -54,7 +50,7 @@
           </div>
 
           <div class="bg-page/50 rounded-lg p-3 mb-3 text-sm text-navy/70">
-            <p>👤 رشّحه: <strong>{{ n.nominated_by_name }}</strong></p>
+            <p>👤 رشّحه: <strong class="text-navy">{{ n.nominated_by_name }}</strong></p>
             <p class="mt-1">📋 المجموعة: {{ n.member_count }} عضو</p>
           </div>
 
@@ -75,7 +71,6 @@
         </div>
       </div>
 
-      <!-- الليدرز المعتمدين -->
       <div class="card mt-6" v-if="approvedLeaders.length > 0">
         <h2 class="text-lg font-semibold text-navy mb-3">👑 ليدرز معتمدين</h2>
         <ul class="space-y-2">
@@ -115,7 +110,6 @@ const members = ref([])
 const users = ref([])
 const successMessage = ref('')
 
-// ترشيحات معلقة
 const pendingNominations = computed(() => {
   return groups.value
     .filter((g) => g.leader_pending)
@@ -136,7 +130,6 @@ const pendingNominations = computed(() => {
     .sort((a, b) => new Date(b.nominated_at) - new Date(a.nominated_at))
 })
 
-// ليدرز معتمدين
 const approvedLeaders = computed(() => {
   return groups.value
     .filter((g) => g.leader_id)
