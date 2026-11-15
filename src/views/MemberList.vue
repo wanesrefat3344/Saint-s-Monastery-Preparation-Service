@@ -86,7 +86,7 @@
       </transition>
 
       <!-- Loading -->
-      <SkeletonTable v-if="loading" :rows="8" :columns="6" />
+      <SkeletonTable v-if="loading" :rows="10" :columns="6" />
 
       <!-- Empty -->
       <div v-else-if="filtered.length === 0" class="card">
@@ -100,9 +100,7 @@
             <router-link v-if="members.length === 0" to="/members/new" class="btn-primary">
               + سجّل أول مخدوم
             </router-link>
-            <button v-else @click="clearFilters" class="btn-cancel">
-              مسح الفلاتر
-            </button>
+            <button v-else @click="clearFilters" class="btn-cancel">مسح الفلاتر</button>
           </template>
         </EmptyState>
       </div>
@@ -122,6 +120,7 @@
                   <th class="text-right px-3 py-3 font-medium hidden lg:table-cell">المجموعة</th>
                   <th class="text-right px-3 py-3 font-medium hidden lg:table-cell">ولي الأمر</th>
                   <th class="text-right px-3 py-3 font-medium">الهاتف</th>
+                  <th class="text-right px-3 py-3 font-medium hidden xl:table-cell">البلد</th>
                   <th class="text-right px-3 py-3 font-medium hidden xl:table-cell">الخادم</th>
                   <th class="text-right px-3 py-3 font-medium">إجراءات</th>
                 </tr>
@@ -154,6 +153,7 @@
                   <td class="px-3 py-3 font-mono text-xs">
                     <span dir="ltr" class="text-navy/80">{{ m.parent_phone }}</span>
                   </td>
+                  <td class="px-3 py-3 text-xs text-navy/70 hidden xl:table-cell">{{ m.address || '—' }}</td>
                   <td class="px-3 py-3 text-xs text-navy/70 hidden xl:table-cell">{{ m.servant_name || '—' }}</td>
                   <td class="px-3 py-3">
                     <div class="flex items-center gap-1">
@@ -167,7 +167,7 @@
           </div>
         </div>
 
-        <!-- Mobile Cards -->
+        <!-- Mobile Cards — كل المعلومات -->
         <div class="md:hidden space-y-3">
           <router-link
             v-for="m in paginatedItems"
@@ -175,7 +175,8 @@
             :to="`/members/${m.id}`"
             class="card block hover:border-brand transition-colors"
           >
-            <div class="flex items-start gap-3">
+            <!-- Header: اسم + خطر -->
+            <div class="flex items-start gap-3 mb-3">
               <div class="w-12 h-12 rounded-xl bg-brand/10 text-brand text-lg font-bold flex items-center justify-center shrink-0">
                 {{ m.full_name.charAt(0) }}
               </div>
@@ -186,11 +187,50 @@
                     {{ riskLabel(getRisk(m)) }}
                   </span>
                 </div>
-                <p class="text-xs text-navy/60 mb-1">{{ m.grade }}</p>
-                <div class="flex flex-wrap gap-1.5 text-xs">
-                  <span v-if="m.group_name" class="bg-brand/10 text-brand px-2 py-0.5 rounded">{{ m.group_name }}</span>
-                  <span class="text-navy/60" dir="ltr">{{ m.parent_phone }}</span>
-                </div>
+                <p class="text-xs text-navy/60">{{ m.grade }}</p>
+              </div>
+            </div>
+
+            <!-- معلومات كاملة -->
+            <div class="space-y-1.5 text-xs">
+              <div v-if="m.group_name" class="flex items-center gap-2">
+                <span class="text-navy/50 shrink-0">المجموعة:</span>
+                <span class="bg-brand/10 text-brand px-2 py-0.5 rounded truncate">{{ m.group_name }}</span>
+              </div>
+
+              <div v-if="m.parent_name" class="flex items-center gap-2">
+                <span class="text-navy/50 shrink-0">ولي الأمر:</span>
+                <span class="text-navy truncate">{{ m.parent_name }}</span>
+                <span v-if="m.relation" class="text-navy/40">({{ m.relation }})</span>
+              </div>
+
+              <div v-if="m.parent_phone" class="flex items-center gap-2">
+                <span class="text-navy/50 shrink-0">📞</span>
+                <span class="text-navy font-mono" dir="ltr">{{ m.parent_phone }}</span>
+                <a
+                  :href="`https://wa.me/2${m.parent_phone}`"
+                  target="_blank"
+                  @click.stop
+                  class="text-success hover:bg-success/10 px-1.5 py-0.5 rounded"
+                  title="واتساب"
+                >
+                  💬
+                </a>
+              </div>
+
+              <div v-if="m.member_phone" class="flex items-center gap-2">
+                <span class="text-navy/50 shrink-0">📱</span>
+                <span class="text-navy font-mono" dir="ltr">{{ m.member_phone }}</span>
+              </div>
+
+              <div v-if="m.address" class="flex items-start gap-2">
+                <span class="text-navy/50 shrink-0">📍</span>
+                <span class="text-navy">{{ m.address }}</span>
+              </div>
+
+              <div v-if="m.servant_name" class="flex items-center gap-2">
+                <span class="text-navy/50 shrink-0">👤</span>
+                <span class="text-navy">{{ m.servant_name }}</span>
               </div>
             </div>
           </router-link>
@@ -251,7 +291,7 @@ const grades = [
   'جامعي', 'خريج',
 ]
 
-const pageSize = 20
+const pageSize = 10
 
 const filterDefs = computed(() => [
   {
@@ -354,7 +394,10 @@ function exportExcel() {
     'المجموعة': m.group_name || '',
     'هاتف المخدوم': m.member_phone || '',
     'ولي الأمر': m.parent_name,
+    'صلة القرابة': m.relation || '',
     'هاتف ولي الأمر': m.parent_phone,
+    'هاتف بديل': m.alt_phone || '',
+    'البلد': m.address || '',
     'الخادم المسؤول': m.servant_name || '',
   }))
   const ws = XLSX.utils.json_to_sheet(rows)
