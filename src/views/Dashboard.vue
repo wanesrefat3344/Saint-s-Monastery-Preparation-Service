@@ -1,176 +1,309 @@
 <template>
   <div class="min-h-screen bg-page" dir="rtl">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 pt-5 sm:pt-8 pb-28 lg:pb-12">
 
-      <header class="flex items-start justify-between gap-4 mb-8">
-        <div class="min-w-0">
-          <p class="text-xs text-navy/50 mb-1">{{ todayLabel }}</p>
-          <h1 class="text-2xl font-bold text-navy truncate">
-            أهلاً {{ user?.name || 'بك' }}
-          </h1>
-          <p class="text-sm text-navy/60 mt-1">{{ roleLabel }}</p>
-        </div>
-        <div class="flex items-center gap-2 shrink-0">
+      <!-- الشريط العلوي -->
+      <div class="flex items-center justify-between gap-3 mb-5">
+        <p class="text-sm text-navy/60">{{ todayLabel }}</p>
+        <div class="flex items-center gap-2">
           <ThemeToggle />
           <button
             @click="logout"
-            class="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-navy/70 hover:text-danger hover:border-danger/40 transition-colors"
+            class="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm text-navy/70 hover:text-danger hover:border-danger/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+            aria-label="تسجيل الخروج"
           >
             <Icon name="logout" class="w-4 h-4" />
-            <span>خروج</span>
+            <span class="hidden sm:inline">خروج</span>
           </button>
         </div>
-      </header>
-
-      <div v-if="loading" class="space-y-6 animate-pulse">
-        <div class="h-28 rounded-2xl bg-navy/5"></div>
-        <div class="h-24 rounded-2xl bg-navy/5"></div>
-        <div class="h-40 rounded-2xl bg-navy/5"></div>
       </div>
 
-      <div v-else-if="error" class="rounded-2xl border border-danger/30 bg-danger/5 p-6 text-center">
-        <p class="text-navy font-medium mb-1">مقدرناش نحمّل البيانات</p>
-        <p class="text-sm text-navy/60 mb-4">اتأكد من الاتصال بالنت وجرّب تاني.</p>
-        <button @click="loadData" class="rounded-lg bg-brand px-4 py-2 text-sm text-white hover:opacity-90">إعادة المحاولة</button>
+      <!-- التحميل -->
+      <div v-if="loading" class="space-y-4 animate-pulse motion-reduce:animate-none">
+        <div class="h-64 rounded-[28px] bg-navy/5"></div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div v-for="n in 4" :key="n" class="h-24 rounded-2xl bg-navy/5"></div>
+        </div>
+        <div class="h-56 rounded-3xl bg-navy/5"></div>
+      </div>
+
+      <!-- خطأ -->
+      <div v-else-if="error" class="rounded-3xl border border-danger/30 bg-danger/5 p-10 text-center">
+        <div class="mx-auto mb-4 w-14 h-14 rounded-2xl bg-danger/10 text-danger flex items-center justify-center">
+          <Icon name="alert" class="w-7 h-7" />
+        </div>
+        <p class="text-navy font-bold mb-1">مقدرناش نحمّل البيانات</p>
+        <p class="text-sm text-navy/60 mb-5">اتأكد من الاتصال بالنت وجرّب تاني.</p>
+        <button @click="loadData" class="rounded-xl bg-brand px-6 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40">
+          إعادة المحاولة
+        </button>
       </div>
 
       <template v-else>
 
-        <section class="rounded-2xl border border-border bg-card p-5 sm:p-6 mb-6">
-          <div class="flex items-center justify-between gap-4">
+        <!-- الهيرو -->
+        <section class="relative overflow-hidden rounded-[28px] bg-brand text-white p-6 sm:p-9 mb-4 shadow-lg">
+          <!-- زخرفة -->
+          <div class="pointer-events-none absolute -top-24 -start-16 w-72 h-72 rounded-full bg-white/[0.07]"></div>
+          <div class="pointer-events-none absolute -bottom-32 end-1/3 w-80 h-80 rounded-full bg-white/[0.05]"></div>
+
+          <div class="relative flex flex-col-reverse lg:flex-row lg:items-center justify-between gap-8">
             <div class="min-w-0">
-              <h2 class="flex items-center gap-2 text-base font-semibold text-navy">
-                <span class="inline-block w-2.5 h-2.5 rounded-full" :class="healthColor.dot"></span>
-                صحة الخدمة: {{ healthLabel }}
-              </h2>
-              <p class="text-sm text-navy/60 mt-1">{{ healthMessage }}</p>
+              <div class="flex items-center gap-2 mb-4">
+                <span class="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">{{ roleLabel }}</span>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
+                  <span class="w-1.5 h-1.5 rounded-full" :class="healthColor.dot"></span>
+                  الخدمة {{ healthLabel }}
+                </span>
+              </div>
+              <p class="text-white/75 text-sm mb-1">{{ greeting }}</p>
+              <h1 class="text-3xl sm:text-4xl font-extrabold leading-tight truncate">
+                أهلاً {{ user?.name || 'بك' }}
+              </h1>
+              <p class="text-white/80 mt-3 max-w-md text-[15px] leading-relaxed">{{ heroSentence }}</p>
+
+              <div class="flex flex-wrap items-center gap-3 mt-6">
+                <router-link
+                  to="/attendance"
+                  class="inline-flex items-center gap-2 rounded-xl bg-white text-brand px-5 py-3 text-sm font-bold shadow-sm hover:shadow-md hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-brand"
+                >
+                  <Icon name="check" class="w-4 h-4" />
+                  تسجيل الحضور
+                </router-link>
+                <router-link
+                  to="/members/new"
+                  class="inline-flex items-center gap-2 rounded-xl bg-white/15 hover:bg-white/25 px-5 py-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                >
+                  <Icon name="plus" class="w-4 h-4" />
+                  تسجيل مخدوم
+                </router-link>
+              </div>
             </div>
-            <p class="shrink-0 text-3xl font-bold tabular-nums" :class="healthColor.text">
-              {{ healthScore }}<span class="text-sm font-normal text-navy/40">/100</span>
-            </p>
-          </div>
-          <div class="mt-4 h-1.5 w-full rounded-full bg-navy/5 overflow-hidden">
-            <div class="h-full rounded-full transition-all duration-700" :class="healthColor.bar" :style="{ width: healthScore + '%' }"></div>
+
+            <!-- دايرة الصحة -->
+            <div class="relative w-36 h-36 sm:w-44 sm:h-44 shrink-0 self-center">
+              <svg viewBox="0 0 100 100" class="w-full h-full -rotate-90" aria-hidden="true">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="7" class="text-white/20" />
+                <circle
+                  cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"
+                  class="text-white motion-reduce:!transition-none"
+                  :stroke-dasharray="RING_C"
+                  :stroke-dashoffset="ringOffset"
+                  style="transition: stroke-dashoffset 0.9s ease"
+                />
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span class="text-4xl sm:text-5xl font-extrabold tabular-nums leading-none">{{ healthScore }}</span>
+                <span class="text-xs text-white/70 mt-1.5">صحة الخدمة</span>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section class="grid grid-cols-2 md:grid-cols-4 gap-px rounded-2xl overflow-hidden border border-border bg-border mb-6">
-          <Stat label="إجمالي المخدومين" :value="members.length" />
-          <Stat label="حضور الأسبوع" :value="`${attendanceRate}%`" :tone="attendanceRate >= 70 ? 'ok' : 'danger'" />
-          <Stat label="غايبين 3 مرات" :value="consecutiveAbsent.length" :tone="consecutiveAbsent.length ? 'danger' : 'muted'" />
-          <Stat label="محتاجين افتقاد" :value="needsFollowupCount" :tone="needsFollowupCount ? 'gold' : 'muted'" />
+        <!-- الإحصائيات -->
+        <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          <Stat label="إجمالي المخدومين" :value="members.length" icon="users" />
+          <Stat label="حضور الأسبوع" :value="`${attendanceRate}%`" icon="chart" :tone="attendanceRate >= 70 ? 'ok' : 'danger'" :progress="attendanceRate" />
+          <Stat label="غايبين 3 مرات" :value="consecutiveAbsent.length" icon="alert" :tone="consecutiveAbsent.length ? 'danger' : 'muted'" />
+          <Stat label="محتاجين افتقاد" :value="needsFollowupCount" icon="phone" :tone="needsFollowupCount ? 'gold' : 'muted'" />
         </section>
 
-        <section class="rounded-2xl border border-border bg-card mb-8">
-          <div class="flex items-center justify-between px-5 sm:px-6 pt-5">
-            <h2 class="text-base font-semibold text-navy">محتاج انتباهك</h2>
-            <router-link
-              v-if="needsFollowupCount > 0"
-              to="/followups"
-              class="text-sm text-brand hover:underline"
-            >
-              فتح الافتقاد ({{ needsFollowupCount }})
-            </router-link>
-          </div>
+        <!-- محتاج انتباهك + اختصارات -->
+        <section class="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-10">
 
-          <div v-if="!alerts.length" class="px-5 sm:px-6 py-8 text-center">
-            <div class="mx-auto mb-3 w-10 h-10 rounded-full bg-success/10 text-success flex items-center justify-center">
-              <Icon name="check" class="w-5 h-5" />
-            </div>
-            <p class="text-sm text-navy/70">مفيش حاجة محتاجة متابعة دلوقتي.</p>
-          </div>
-
-          <div v-else class="px-5 sm:px-6 pb-5 pt-3 space-y-4">
-            <ul class="space-y-2">
-              <li
-                v-for="(a, i) in alerts"
-                :key="i"
-                class="flex items-start gap-3 rounded-xl px-4 py-3 text-sm"
-                :class="a.type === 'danger' ? 'bg-danger/5 text-danger' : 'bg-gold/10 text-navy'"
+          <!-- محتاج انتباهك -->
+          <div class="lg:col-span-3 rounded-3xl border border-border bg-card shadow-sm">
+            <div class="flex items-center justify-between gap-3 px-5 sm:px-6 pt-5">
+              <h2 class="text-base font-bold text-navy">محتاج انتباهك</h2>
+              <router-link
+                v-if="needsFollowupCount > 0"
+                to="/followups"
+                class="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded"
               >
-                <Icon :name="a.type === 'danger' ? 'alert' : 'phone'" class="w-4 h-4 mt-0.5 shrink-0" :class="a.type === 'danger' ? '' : 'text-gold'" />
-                <span>{{ a.message }}</span>
+                فتح الافتقاد
+                <Icon name="chevron" class="w-4 h-4" />
+              </router-link>
+            </div>
+
+            <!-- تبويبات -->
+            <div v-if="alertCount" class="px-5 sm:px-6 mt-4">
+              <div class="inline-flex rounded-xl bg-page p-1 text-sm" role="tablist">
+                <button
+                  role="tab"
+                  :aria-selected="activeTab === 'absent'"
+                  @click="tab = 'absent'"
+                  class="rounded-lg px-4 py-1.5 font-medium transition-colors"
+                  :class="activeTab === 'absent' ? 'bg-card text-navy shadow-sm' : 'text-navy/50 hover:text-navy'"
+                >
+                  غياب متتالي
+                  <span class="ms-1 tabular-nums" :class="consecutiveAbsent.length ? 'text-danger' : ''">{{ consecutiveAbsent.length }}</span>
+                </button>
+                <button
+                  role="tab"
+                  :aria-selected="activeTab === 'followup'"
+                  @click="tab = 'followup'"
+                  class="rounded-lg px-4 py-1.5 font-medium transition-colors"
+                  :class="activeTab === 'followup' ? 'bg-card text-navy shadow-sm' : 'text-navy/50 hover:text-navy'"
+                >
+                  محتاجين افتقاد
+                  <span class="ms-1 tabular-nums" :class="needsFollowupCount ? 'text-gold' : ''">{{ needsFollowupCount }}</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- فاضي -->
+            <div v-if="!alertCount" class="px-6 py-12 text-center">
+              <div class="mx-auto mb-3 w-12 h-12 rounded-2xl bg-success/10 text-success flex items-center justify-center">
+                <Icon name="check" class="w-6 h-6" />
+              </div>
+              <p class="font-semibold text-navy">كله تمام</p>
+              <p class="text-sm text-navy/60 mt-1">مفيش حد محتاج متابعة دلوقتي.</p>
+            </div>
+
+            <div v-else-if="!visibleList.length" class="px-6 py-10 text-center text-sm text-navy/60">
+              مفيش حد في القايمة دي.
+            </div>
+
+            <!-- القايمة -->
+            <ul v-else class="px-3 sm:px-4 pt-3 pb-4">
+              <li v-for="m in visibleList" :key="m.id">
+                <div class="flex items-center gap-3 rounded-2xl px-2 sm:px-3 py-2.5 hover:bg-page transition-colors">
+                  <span
+                    class="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-sm font-bold"
+                    :class="activeTab === 'absent' ? 'bg-danger/10 text-danger' : 'bg-gold/10 text-gold'"
+                  >{{ nameOf(m).charAt(0) }}</span>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-navy truncate">{{ nameOf(m) }}</p>
+                    <p class="text-xs text-navy/50 mt-0.5">{{ metaOf(m) }}</p>
+                  </div>
+                  <a
+                    v-if="phoneOf(m)"
+                    :href="`tel:${phoneOf(m)}`"
+                    class="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-brand/10 text-brand hover:bg-brand hover:text-white px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                    :aria-label="`اتصال بـ ${nameOf(m)}`"
+                  >
+                    <Icon name="phone" class="w-3.5 h-3.5" />
+                    اتصال
+                  </a>
+                </div>
               </li>
             </ul>
+
+            <div v-if="hiddenCount > 0" class="px-5 sm:px-6 pb-5 -mt-1">
+              <router-link
+                :to="activeTab === 'followup' ? '/followups' : '/attendance-report'"
+                class="text-sm text-navy/60 hover:text-brand transition-colors"
+              >
+                و {{ hiddenCount }} كمان…
+              </router-link>
+            </div>
+          </div>
+
+          <!-- اختصارات -->
+          <div class="lg:col-span-2 rounded-3xl border border-border bg-card shadow-sm p-5 sm:p-6">
+            <h2 class="text-base font-bold text-navy mb-3">اختصارات</h2>
+            <div class="space-y-1.5">
+              <router-link
+                v-for="s in shortcuts"
+                :key="s.to"
+                :to="s.to"
+                class="group flex items-center gap-3 rounded-2xl px-3 py-3 hover:bg-page transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+              >
+                <span class="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center transition-colors" :class="s.tint">
+                  <Icon :name="s.icon" class="w-[18px] h-[18px]" />
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="block text-sm font-semibold text-navy group-hover:text-brand transition-colors">{{ s.label }}</span>
+                  <span class="block text-xs text-navy/50 mt-0.5 truncate">{{ s.desc }}</span>
+                </span>
+                <Icon name="chevron" class="w-4 h-4 shrink-0 text-navy/25 group-hover:text-brand transition-colors" />
+              </router-link>
+            </div>
           </div>
         </section>
 
-        <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <router-link
-            to="/attendance"
-            class="group flex items-center gap-4 rounded-2xl bg-brand text-white p-5 hover:opacity-95 transition-opacity"
-          >
-            <span class="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center">
-              <Icon name="check" class="w-5 h-5" />
-            </span>
-            <span>
-              <span class="block font-semibold">تسجيل الحضور</span>
-              <span class="block text-sm text-white/80 mt-0.5">سجّل حضور الاجتماع</span>
-            </span>
-          </router-link>
+        <!-- كل الأقسام -->
+        <section>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <h2 class="text-lg font-bold text-navy">كل الأقسام</h2>
+            <label class="relative block sm:w-72">
+              <span class="sr-only">ابحث في الأقسام</span>
+              <Icon name="search" class="absolute top-1/2 -translate-y-1/2 start-3.5 w-4 h-4 text-navy/40 pointer-events-none" />
+              <input
+                v-model="query"
+                type="search"
+                placeholder="ابحث في الأقسام…"
+                class="w-full rounded-xl border border-border bg-card ps-10 pe-4 py-2.5 text-sm text-navy placeholder:text-navy/40 focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand/50 transition"
+              />
+            </label>
+          </div>
 
-          <router-link
-            to="/members/new"
-            class="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 hover:border-brand/50 transition-colors"
-          >
-            <span class="w-11 h-11 rounded-xl bg-brand/10 text-brand flex items-center justify-center">
-              <Icon name="plus" class="w-5 h-5" />
-            </span>
-            <span>
-              <span class="block font-semibold text-navy">تسجيل مخدوم</span>
-              <span class="block text-sm text-navy/60 mt-0.5">إضافة مخدوم جديد</span>
-            </span>
-          </router-link>
+          <div v-if="!filteredGroups.length" class="rounded-2xl border border-dashed border-border py-12 text-center">
+            <p class="text-sm text-navy/60">مفيش قسم بالاسم ده. جرّب كلمة تانية.</p>
+          </div>
 
-          <router-link
-            v-if="isAdmin"
-            to="/users"
-            class="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 hover:border-brand/50 transition-colors"
-          >
-            <span class="w-11 h-11 rounded-xl bg-gold/10 text-gold group-hover:bg-brand/10 group-hover:text-brand transition-colors flex items-center justify-center">
-              <Icon name="users" class="w-5 h-5" />
-            </span>
-            <span>
-              <span class="block font-semibold text-navy group-hover:text-brand transition-colors">إدارة الحسابات</span>
-              <span class="block text-sm text-navy/60 mt-0.5">المستخدمين والصلاحيات</span>
-            </span>
-          </router-link>
-        </section>
-
-        <section v-for="group in linkGroups" :key="group.title" class="mb-8 last:mb-0">
-          <h2 class="text-sm font-semibold text-navy/60 mb-3">{{ group.title }}</h2>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <router-link
-              v-for="l in group.items"
-              :key="l.to"
-              :to="l.to"
-              class="group relative flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3.5 hover:border-brand/50 transition-colors"
-            >
-              <span class="w-9 h-9 rounded-lg bg-page text-navy/70 group-hover:bg-brand/10 group-hover:text-brand transition-colors flex items-center justify-center">
-                <Icon :name="l.icon" class="w-[18px] h-[18px]" />
-              </span>
-              <span class="min-w-0">
-                <span class="block text-sm font-semibold text-navy group-hover:text-brand transition-colors">{{ l.label }}</span>
-                <span class="block text-xs text-navy/50 mt-0.5 truncate">{{ l.desc }}</span>
-              </span>
-              <span
-                v-if="l.badge"
-                class="absolute top-3 left-3 min-w-[20px] text-center bg-danger text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+          <div v-for="group in filteredGroups" :key="group.title" class="mb-7 last:mb-0">
+            <h3 class="text-sm font-semibold text-navy/50 mb-3 px-1">{{ group.title }}</h3>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              <router-link
+                v-for="l in group.items"
+                :key="l.to"
+                :to="l.to"
+                class="group relative flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 hover:border-brand/50 hover:shadow-md hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
               >
-                {{ l.badge }}
-              </span>
-            </router-link>
+                <span class="w-10 h-10 rounded-xl bg-page text-navy/70 group-hover:bg-brand group-hover:text-white transition-colors flex items-center justify-center">
+                  <Icon :name="l.icon" class="w-[18px] h-[18px]" />
+                </span>
+                <span class="min-w-0">
+                  <span class="block text-sm font-bold text-navy">{{ l.label }}</span>
+                  <span class="block text-xs text-navy/50 mt-0.5 truncate">{{ l.desc }}</span>
+                </span>
+                <span
+                  v-if="l.badge"
+                  class="absolute top-3 end-3 min-w-[22px] text-center bg-danger text-white text-[11px] font-bold px-1.5 py-0.5 rounded-full tabular-nums"
+                >{{ l.badge }}</span>
+              </router-link>
+            </div>
           </div>
         </section>
 
       </template>
     </div>
+
+    <!-- شريط التنقل السفلي (موبايل) -->
+    <nav
+      class="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card/90 backdrop-blur-md"
+      style="padding-bottom: env(safe-area-inset-bottom, 0px)"
+      aria-label="التنقل الرئيسي"
+    >
+      <ul class="grid grid-cols-4 max-w-md mx-auto">
+        <li v-for="n in bottomNav" :key="n.to">
+          <router-link
+            :to="n.to"
+            class="relative flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors"
+            :class="isActive(n.to) ? 'text-brand' : 'text-navy/50'"
+          >
+            <span
+              class="w-12 h-7 rounded-full flex items-center justify-center transition-colors"
+              :class="isActive(n.to) ? 'bg-brand/10' : ''"
+            >
+              <Icon :name="n.icon" class="w-[18px] h-[18px]" />
+            </span>
+            {{ n.label }}
+            <span
+              v-if="n.badge"
+              class="absolute top-1.5 end-[calc(50%-22px)] min-w-[16px] text-center bg-danger text-white text-[9px] font-bold px-1 rounded-full"
+            >{{ n.badge }}</span>
+          </router-link>
+        </li>
+      </ul>
+    </nav>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, h } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import api from '../api/client'
 import ThemeToggle from '../composables/ThemeToggle.vue'
 
@@ -178,6 +311,9 @@ const ICONS = {
   plus: 'M12 5v14M5 12h14',
   list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
   check: 'M20 6 9 17l-5-5',
+  chevron: 'm15 18-6-6 6-6',
+  search: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35',
+  home: 'M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z',
   phone: 'M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z',
   chart: 'M3 3v18h18M7 14l4-4 4 4 5-5',
   user: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
@@ -206,18 +342,35 @@ const Icon = {
 }
 
 const Stat = {
-  props: { label: String, value: [String, Number], tone: { type: String, default: 'default' } },
+  props: {
+    label: String,
+    value: [String, Number],
+    icon: String,
+    tone: { type: String, default: 'default' },
+    progress: { type: Number, default: null },
+  },
   setup(props) {
-    const toneClass = { default: 'text-navy', ok: 'text-success', danger: 'text-danger', gold: 'text-gold', muted: 'text-navy/40' }
+    const text = { default: 'text-navy', ok: 'text-success', danger: 'text-danger', gold: 'text-gold', muted: 'text-navy/40' }
+    const soft = { default: 'bg-navy/5 text-navy/70', ok: 'bg-success/10 text-success', danger: 'bg-danger/10 text-danger', gold: 'bg-gold/10 text-gold', muted: 'bg-navy/5 text-navy/40' }
+    const bar = { default: 'bg-navy', ok: 'bg-success', danger: 'bg-danger', gold: 'bg-gold', muted: 'bg-navy/30' }
     return () =>
-      h('div', { class: 'bg-card px-5 py-4' }, [
-        h('p', { class: 'text-xs text-navy/50 mb-1.5' }, props.label),
-        h('p', { class: ['text-2xl font-bold tabular-nums', toneClass[props.tone] || toneClass.default] }, String(props.value)),
+      h('div', { class: 'rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-sm' }, [
+        h('div', { class: 'flex items-center justify-between gap-2 mb-3' }, [
+          h('p', { class: 'text-xs text-navy/55' }, props.label),
+          props.icon ? h('span', { class: ['w-8 h-8 rounded-lg flex items-center justify-center', soft[props.tone] || soft.default] }, [h(Icon, { name: props.icon, class: 'w-4 h-4' })]) : null,
+        ]),
+        h('p', { class: ['text-3xl font-extrabold tabular-nums leading-none', text[props.tone] || text.default] }, String(props.value)),
+        props.progress !== null
+          ? h('div', { class: 'mt-3 h-1.5 rounded-full bg-navy/5 overflow-hidden' }, [
+              h('div', { class: ['h-full rounded-full', bar[props.tone] || bar.default], style: { width: `${Math.min(100, props.progress)}%` } }),
+            ])
+          : null,
       ])
   },
 }
 
 const router = useRouter()
+const route = useRoute()
 const user = JSON.parse(localStorage.getItem('user') || '{}')
 const isAdmin = user.role === 'admin'
 
@@ -226,8 +379,20 @@ const followupsMap = ref({})
 const attendanceData = ref({})
 const loading = ref(false)
 const error = ref(false)
+const tab = ref(null)
+const query = ref('')
+
+const RING_C = 2 * Math.PI * 42
+const MAX_ROWS = 5
 
 const todayLabel = new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })
+const greeting = (() => {
+  const hr = new Date().getHours()
+  if (hr < 12) return 'صباح الخير'
+  if (hr < 18) return 'نهارك سعيد'
+  return 'مساء الخير'
+})()
+
 const roleLabel = computed(() => {
   if (!user?.role) return 'مستخدم'
   return {
@@ -294,20 +459,52 @@ const healthScore = computed(() => {
   return Math.max(0, Math.min(100, Math.round(score)))
 })
 
+const ringOffset = computed(() => RING_C * (1 - healthScore.value / 100))
 const healthLabel = computed(() => healthScore.value >= 80 ? 'ممتازة' : healthScore.value >= 60 ? 'جيدة' : healthScore.value >= 40 ? 'تحتاج متابعة' : 'في خطر')
 const healthMessage = computed(() => healthScore.value >= 80 ? 'الخدمة ماشية كويس!' : healthScore.value >= 60 ? 'فيه نقاط محتاجة متابعة' : 'فيه مشاكل محتاجة تدخل')
 const healthColor = computed(() =>
   healthScore.value >= 80
-    ? { dot: 'bg-success', bar: 'bg-success', text: 'text-success' }
+    ? { dot: 'bg-success' }
     : healthScore.value >= 60
-      ? { dot: 'bg-gold', bar: 'bg-gold', text: 'text-gold' }
-      : { dot: 'bg-danger', bar: 'bg-danger', text: 'text-danger' }
+      ? { dot: 'bg-gold' }
+      : { dot: 'bg-danger' }
 )
 
-const alerts = computed(() => {
-  const list = []
-  if (consecutiveAbsent.value.length > 0) list.push({ type: 'danger', message: `${consecutiveAbsent.value.length} مخدوم غابوا 3 مرات متتالية` })
-  if (needsFollowupCount.value > 0) list.push({ type: 'warn', message: `${needsFollowupCount.value} مخدوم محتاجين افتقاد` })
+const heroSentence = computed(() => {
+  const parts = []
+  if (consecutiveAbsent.value.length) parts.push(`${consecutiveAbsent.value.length} غايبين 3 مرات`)
+  if (needsFollowupCount.value) parts.push(`${needsFollowupCount.value} محتاجين افتقاد`)
+  return parts.length ? `${healthMessage.value} — ${parts.join(' و ')}.` : `${healthMessage.value} مفيش حد محتاج متابعة.`
+})
+
+/* قايمة الانتباه */
+const alertCount = computed(() => consecutiveAbsent.value.length + needsFollowupCount.value)
+const activeTab = computed(() => {
+  if (tab.value) return tab.value
+  return consecutiveAbsent.value.length ? 'absent' : 'followup'
+})
+const fullList = computed(() => {
+  if (activeTab.value === 'absent') return consecutiveAbsent.value
+  return [...needsFollowupList.value].sort((a, b) => (b.daysSince ?? Infinity) - (a.daysSince ?? Infinity))
+})
+const visibleList = computed(() => fullList.value.slice(0, MAX_ROWS))
+const hiddenCount = computed(() => Math.max(0, fullList.value.length - MAX_ROWS))
+
+const nameOf = (m) => m.name || m.full_name || 'بدون اسم'
+const phoneOf = (m) => m.phone || m.mobile || ''
+const metaOf = (m) => {
+  if (activeTab.value === 'absent') return `غاب ${m.absentCount} مرات متتالية`
+  return m.daysSince === null ? 'لم يتم افتقاده من قبل' : `آخر افتقاد من ${m.daysSince} يوم`
+}
+
+/* الأقسام */
+const shortcuts = computed(() => {
+  const list = [
+    { to: '/attendance-report', label: 'تقرير الحضور', desc: 'حضور حسب التاريخ', icon: 'chart', tint: 'bg-success/10 text-success' },
+    { to: '/readings', label: 'القراءات', desc: 'قراءات الإنجيل', icon: 'book', tint: 'bg-brand/10 text-brand' },
+    { to: '/challenges', label: 'التحديات', desc: 'التحديات المتاحة', icon: 'trophy', tint: 'bg-gold/10 text-gold' },
+  ]
+  if (isAdmin) list.push({ to: '/users', label: 'إدارة الحسابات', desc: 'المستخدمين والصلاحيات', icon: 'users', tint: 'bg-navy/5 text-navy/70' })
   return list
 })
 
@@ -318,10 +515,12 @@ const linkGroups = computed(() => {
       items: [
         { to: '/members', label: 'قائمة المخدومين', desc: 'عرض وبحث', icon: 'list' },
         { to: '/followups', label: 'الافتقاد', desc: 'متابعة المحتاجين', icon: 'phone', badge: needsFollowupCount.value || null },
-        { to: '/challenges', label: 'التحديات', desc: 'التحديات المتاحة', icon: 'trophy' }, // ✅ جديد — للكل
-        { to: '/groups', label: 'المجموعات', desc: 'مجموعاتي', icon: 'users' }, // ✅ جديد — للكل
+        { to: '/challenges', label: 'التحديات', desc: 'التحديات المتاحة', icon: 'trophy' },
+        { to: '/groups', label: 'المجموعات', desc: 'مجموعاتي', icon: 'users' },
         { to: '/readings', label: 'القراءات', desc: 'قراءات الإنجيل', icon: 'book' },
         { to: '/reports', label: 'التقارير', desc: 'إحصائيات', icon: 'chart' },
+        { to: '/servant-attendance', label: 'حضور الخدام', desc: 'تسجيل حضور الخدام', icon: 'check' },
+        { to: '/servants-activity', label: 'نشاط الخدام', desc: 'تقرير شامل', icon: 'chart' },
       ],
     },
   ]
@@ -337,18 +536,25 @@ const linkGroups = computed(() => {
       ],
     })
   }
-  // للخادم
-if (user.role !== 'admin') {
-  groups.unshift({
-    title: 'خدمتي',
-    items: [
-      { to: '/my-service', label: 'صفحتي', desc: 'مخدوميني وتحدياتي', icon: 'user' },
-      { to: '/team', label: 'الفريق', desc: 'الخدام المسؤولين', icon: 'users' },
-    ],
-  })
-}
   return groups
 })
+
+const filteredGroups = computed(() => {
+  const q = query.value.trim()
+  if (!q) return linkGroups.value
+  return linkGroups.value
+    .map((g) => ({ ...g, items: g.items.filter((l) => l.label.includes(q) || l.desc.includes(q)) }))
+    .filter((g) => g.items.length)
+})
+
+/* التنقل السفلي */
+const bottomNav = computed(() => [
+  { to: '/', label: 'الرئيسية', icon: 'home' },
+  { to: '/attendance', label: 'الحضور', icon: 'check' },
+  { to: '/members', label: 'المخدومين', icon: 'users' },
+  { to: '/followups', label: 'الافتقاد', icon: 'phone', badge: needsFollowupCount.value || null },
+])
+const isActive = (to) => (to === '/' ? route.path === '/' : route.path.startsWith(to))
 
 function logout() {
   localStorage.removeItem('token')

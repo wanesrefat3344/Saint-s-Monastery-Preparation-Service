@@ -5,7 +5,7 @@ import MemberCard from '../views/MemberCard.vue'
 import Dashboard from '../views/Dashboard.vue'
 import MyService from '../views/MyService.vue'
 import Team from '../views/Team.vue'
-
+import AttendanceReport from '../views/AttendanceReport.vue'
 import MemberForm from '../views/MemberForm.vue'
 import MemberList from '../views/MemberList.vue'
 import MemberDetails from '../views/MemberDetails.vue'
@@ -29,13 +29,17 @@ import GroupChallenges from '../views/GroupChallenges.vue'
 import ReadingBooksList from '../views/ReadingBooksList.vue'
 import ReadingsList from '../views/ReadingsList.vue'
 import ReadingForm from '../views/ReadingForm.vue'
-
+import ServantAttendance from '../views/ServantAttendance.vue'
+import ServantEvaluation from '../views/ServantEvaluation.vue'
+import ServantsActivity from '../views/ServantsActivity.vue'
 const routes = [
   { path: '/members/:id/card', name: 'member-card', component: MemberCard, meta: { title: 'بطاقة المخدوم' } },
 
   { path: '/login', name: 'login', component: Login, meta: { public: true, title: 'تسجيل الدخول' } },
   { path: '/', name: 'dashboard', component: Dashboard, meta: { title: 'لوحة التحكم' } },
-
+{ path: '/servant-attendance', name: 'servant-attendance', component: ServantAttendance, meta: { adminOnly: true, title: 'حضور الخدام' } },
+{ path: '/servant-evaluation', name: 'servant-evaluation', component: ServantEvaluation, meta: { adminOnly: true, title: 'تقييم الخدام' } },
+{ path: '/servants-activity', name: 'servants-activity', component: ServantsActivity, meta: { adminOnly: true, title: 'نشاط الخدام' } },
   { path: '/my-service', name: 'my-service', component: MyService, meta: { title: 'خدمتي' } },
   { path: '/team', name: 'team', component: Team, meta: { adminOnly: true, title: 'الفريق' } },
   { path: '/team/:id', name: 'team-servant', component: ServantDetails, meta: { adminOnly: true, title: 'تفاصيل الخادم' } },
@@ -54,7 +58,7 @@ const routes = [
   { path: '/groups/:id', name: 'group-details', component: GroupDetails, meta: { title: 'تفاصيل المجموعة' } },
   { path: '/groups/:id/challenges', name: 'group-challenges', component: GroupChallenges, meta: { title: 'تحديات المجموعة' } },
   { path: '/leaders-approval', name: 'leaders-approval', component: LeadersApproval, meta: { adminOnly: true, title: 'ترشيحات الليدز' } },
-
+{ path: '/attendance-report', name: 'attendance-report', component: AttendanceReport, meta: { title: 'تقرير الحضور' } },
   // ✅ شيلنا adminOnly من /servants
   { path: '/servants', name: 'servants', component: ServantsList, meta: { title: 'الخدام' } },
   { path: '/servants/:id', name: 'servant-details', component: ServantDetails, meta: { adminOnly: true, title: 'بروفايل الخادم' } },

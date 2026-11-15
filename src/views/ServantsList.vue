@@ -8,6 +8,8 @@
           <p class="text-sm text-navy/60 mt-1">إجمالي: {{ servants.length }} خادم</p>
         </div>
         <div class="flex gap-2 flex-wrap">
+          <router-link to="/servants-activity" class="btn-cancel text-sm">📊 نشاط الخدام</router-link>
+          <router-link to="/servant-attendance" class="btn-cancel text-sm">✓ حضور الخدام</router-link>
           <button v-if="isAdmin" @click="exportExcel" class="btn-cancel text-sm">تصدير Excel</button>
           <button @click="openAdd" class="btn-primary text-sm">+ إضافة خادم</button>
           <router-link to="/" class="btn-cancel text-sm">رجوع</router-link>
@@ -91,6 +93,16 @@
           </div>
 
           <div class="flex gap-1 justify-end flex-wrap">
+            <!-- ✅ تقييم -->
+            <router-link
+              v-if="s.role !== 'reader' && s.status === 'active'"
+              :to="`/servant-evaluation?servant=${s.id}`"
+              class="text-gold text-xs hover:bg-gold/10 px-2 py-1 rounded"
+              title="تقييم الخادم"
+            >
+              ⭐ تقييم
+            </router-link>
+
             <router-link v-if="s.role !== 'reader' && isAdmin" :to="`/servants/${s.id}`" class="text-brand text-xs hover:bg-brand/10 px-2 py-1 rounded">عرض</router-link>
             <button v-if="canEdit(s)" @click="openEdit(s)" class="text-gold text-xs hover:bg-gold/10 px-2 py-1 rounded">تعديل</button>
             <button v-if="isAdmin" @click="remove(s.id, s.name)" class="text-danger text-xs hover:bg-danger/10 px-2 py-1 rounded">حذف</button>
@@ -241,7 +253,10 @@ function roleColor(role) {
 }
 
 function roleLabel(role) {
-  return { admin: '👑 أدمن', group_leader: '⭐ ليدر', co_servant: '🧑‍🏫 مساعد', servant: '🧑‍🏫 خادم', reader: '📖 مسجل قراءات' }[role] || role
+  return {
+    admin: '👑 أدمن', group_leader: '⭐ ليدر', co_servant: '🧑‍🏫 مساعد',
+    servant: '🧑‍🏫 خادم', reader: '📖 مسجل قراءات',
+  }[role] || role
 }
 
 function formatDate(d) {

@@ -111,9 +111,15 @@
               <p v-if="errors.memberPhone" class="error-text">{{ errors.memberPhone }}</p>
             </div>
 
+            <!-- ✅ البلد — select -->
             <div class="md:col-span-2">
-              <label class="block text-sm font-medium mb-1 text-navy">العنوان</label>
-              <textarea v-model.trim="form.address" rows="2" placeholder="المدينة - الشارع - رقم المنزل" class="input resize-none"></textarea>
+              <label class="block text-sm font-medium mb-1 text-navy">
+                البلد <span class="text-navy/40 text-xs">(اختياري)</span>
+              </label>
+              <select v-model="form.address" class="input">
+                <option value="">— اختر المنطقة —</option>
+                <option v-for="area in areas" :key="area" :value="area">{{ area }}</option>
+              </select>
             </div>
           </div>
         </section>
@@ -174,6 +180,22 @@ const router = useRouter()
 const grades = ['الصف الأول الإعدادي', 'الصف الثاني الإعدادي', 'الصف الثالث الإعدادي']
 const relations = ['أب', 'أم', 'أخ', 'أخت', 'عم', 'خال', 'جد', 'جدة', 'غير ذلك']
 
+// ✅ المناطق المتاحة
+const areas = [
+  'الطود',
+  'الحسينات',
+  'مكي',
+  'مكي الجبل',
+  'الوحدة',
+  'الضمان',
+  'الطود البلد',
+  'المهيدات',
+  'الشغب منطقة 1',
+  'الشغب منطقة 2',
+  'الدبابية',
+  'المعلا',
+]
+
 const form = reactive({
   fullName: '', birthDate: '', gender: '', grade: '',
   memberPhone: '', address: '', servantId: '', groupId: '',
@@ -189,7 +211,6 @@ const servants = ref([])
 const groups = ref([])
 const draftLoaded = ref(false)
 
-// ✅ Auto-save
 const { hasDraft, loadDraft, clearDraft } = useAutoSave('member_draft', form, 800)
 
 const activeServants = computed(() =>

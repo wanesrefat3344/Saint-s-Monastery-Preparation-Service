@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-page py-10 px-4" dir="rtl">
     <div class="max-w-3xl mx-auto">
-      <div v-if="loading" class="text-center text-navy/50 py-20">جارٍ التحميل...</div>
+      <div v-if="loading" class="card text-center py-16 text-navy/50">جارٍ التحميل...</div>
 
       <div v-else-if="!found" class="card text-center py-16">
         <p class="text-navy/60 mb-4">المخدوم غير موجود</p>
@@ -69,8 +69,13 @@
               <p v-if="errors.memberPhone" class="error-text">{{ errors.memberPhone }}</p>
             </div>
             <div class="md:col-span-2">
-              <label class="block text-sm font-medium mb-1 text-navy">العنوان</label>
-              <textarea v-model.trim="form.address" rows="2" class="input resize-none"></textarea>
+              <label class="block text-sm font-medium mb-1 text-navy">
+                البلد <span class="text-navy/40 text-xs">(اختياري)</span>
+              </label>
+              <select v-model="form.address" class="input">
+                <option value="">— اختر المنطقة —</option>
+                <option v-for="area in areas" :key="area" :value="area">{{ area }}</option>
+              </select>
             </div>
           </div>
         </section>
@@ -140,6 +145,21 @@ const grades = [
   'جامعي', 'خريج',
 ]
 const relations = ['أب', 'أم', 'أخ', 'أخت', 'عم', 'خال', 'جد', 'جدة', 'غير ذلك']
+
+const areas = [
+  'الطود',
+  'الحسينات',
+  'مكي',
+  'مكي الجبل',
+  'الوحدة',
+  'الضمان',
+  'الطود البلد',
+  'المهيدات',
+  'الشغب منطقة 1',
+  'الشغب منطقة 2',
+  'الدبابية',
+  'المعلاء',
+]
 
 const form = reactive({
   fullName: '', birthDate: '', gender: '', grade: '',

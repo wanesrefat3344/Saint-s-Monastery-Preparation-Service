@@ -62,7 +62,7 @@
         <button @click="loadMember" class="btn-primary">إعادة المحاولة</button>
       </div>
 
-      <!-- Success message -->
+      <!-- Success -->
       <transition name="fade">
         <div
           v-if="successMessage"
@@ -72,18 +72,25 @@
         </div>
       </transition>
 
-      <!-- Print area: 4 cards per A4 -->
-      <div v-if="member" id="print-area" class="bg-white p-4 rounded-xl">
+      <!--
+        كارت واحد بتصميم واحد:
+        - على الشاشة بيظهر أول كارت بس (معاينة)
+        - في الطباعة بيظهروا 4 كروت 85×54 مم
+      -->
+      <div v-if="member" id="print-area">
+        <p class="text-xs text-navy/50 mb-3 text-center print:hidden">معاينة البطاقة</p>
+
         <div class="cards-grid">
-          <div
-            v-for="n in 4"
-            :key="n"
-            class="member-card"
-          >
-            <!-- Header -->
+          <div v-for="n in 4" :key="n" class="member-card">
+            <!-- العلامة المائية (لوجو الخدمة باهت) -->
+            <img :src="watermarkLogo" alt="" class="card-watermark" />
+
+            <!-- الهيدر -->
             <div class="card-header">
               <div class="card-logo">
-                <span class="logo-icon">✝️</span>
+                <div class="logo-badge">
+                  <img :src="logo" alt="لوجو الخدمة" />
+                </div>
                 <div>
                   <p class="logo-title">خدمة إعدادي</p>
                   <p class="logo-sub">دير القديسين بالطود</p>
@@ -92,33 +99,44 @@
               <div class="card-id">#{{ member.id }}</div>
             </div>
 
-            <!-- Divider -->
-            <div class="card-divider"></div>
-
-            <!-- Body: QR + Info -->
+            <!-- المحتوى -->
             <div class="card-body">
               <div class="card-qr">
-                <canvas :ref="(el) => setCanvasRef(el, n)" class="qr-canvas"></canvas>
+                <canvas :ref="(el) => setQrRef(el, n)" class="qr-canvas"></canvas>
               </div>
+
               <div class="card-info">
                 <p class="info-name">{{ member.full_name }}</p>
-                <p class="info-row"><strong>الصف:</strong> {{ member.grade || '—' }}</p>
-                <p class="info-row"><strong>ولي الأمر:</strong> {{ member.parent_name || '—' }}</p>
-                <p class="info-row"><strong>📞</strong> <span dir="ltr">{{ member.parent_phone || '—' }}</span></p>
+
+                <div class="chips">
+                  <span class="chip chip-gold">📚 {{ member.grade || '—' }}</span>
+                  <span v-if="member.group_name" class="chip chip-blue">👥 {{ member.group_name }}</span>
+                </div>
+
+                <div v-if="member.servant_name" class="info-row">
+                  <span class="info-icon">👤</span>
+                  <span>{{ member.servant_name }}</span>
+                </div>
+
+                <div v-if="member.address" class="info-row">
+                  <span class="info-icon">📍</span>
+                  <span>{{ member.address }}</span>
+                </div>
               </div>
             </div>
 
-            <!-- Footer -->
-            <div class="card-footer">
-              🎫 بطاقة مخدوم — احتفظ بها
+            <!-- ولي الأمر -->
+            <div class="card-parent">
+              <span class="info-icon">👨‍👩‍👦</span>
+              <span>{{ member.parent_name || '—' }}</span>
+              <span class="dot">•</span>
+              <span dir="ltr">{{ member.parent_phone || '—' }}</span>
             </div>
+
+            <div class="card-footer">🎫 بطاقة مخدوم — احتفظ بها</div>
           </div>
         </div>
       </div>
-
-      <p class="text-xs text-navy/50 text-center mt-4 print:hidden">
-        * في الطباعة: 4 نسخ من البطاقة في ورقة A4
-      </p>
     </div>
   </div>
 </template>
@@ -130,6 +148,10 @@ import QRCode from 'qrcode'
 import html2canvas from 'html2canvas'
 import api from '../api/client'
 
+// لوجو الكارت (فوق) + العلامة المائية الباهتة
+import logo from '../assets/logo.jpeg'
+import watermarkLogo from '../assets/logo.jpeg'
+
 const route = useRoute()
 const router = useRouter()
 
@@ -138,10 +160,10 @@ const loading = ref(true)
 const error = ref('')
 const downloading = ref(false)
 const successMessage = ref('')
-const canvasRefs = ref({})
+const qrCanvases = ref({})
 
-function setCanvasRef(el, n) {
-  if (el) canvasRefs.value[n] = el
+function setQrRef(el, n) {
+  if (el) qrCanvases.value[n] = el
 }
 
 async function loadMember() {
@@ -150,6 +172,7 @@ async function loadMember() {
   try {
     const { data } = await api.get(`/members/${route.params.id}`)
     member.value = data
+    loading.value = false
     await nextTick()
     await generateQRs()
   } catch (e) {
@@ -161,18 +184,19 @@ async function loadMember() {
 }
 
 async function generateQRs() {
+  const qrOptions = {
+    width: 300,
+    margin: 1,
+    color: { dark: '#16324F', light: '#FFFFFF' },
+    errorCorrectionLevel: 'M',
+  }
   for (const n of [1, 2, 3, 4]) {
-    const canvas = canvasRefs.value[n]
+    const canvas = qrCanvases.value[n]
     if (!canvas) continue
     try {
-      await QRCode.toCanvas(canvas, String(member.value.id), {
-        width: 120,
-        margin: 1,
-        color: { dark: '#16324F', light: '#FFFFFF' },
-        errorCorrectionLevel: 'M',
-      })
+      await QRCode.toCanvas(canvas, String(member.value.id), qrOptions)
     } catch (e) {
-      console.error('QR generation error:', e)
+      console.error('QR error:', e)
     }
   }
 }
@@ -186,10 +210,13 @@ async function downloadPNG() {
   try {
     const el = document.querySelector('.member-card')
     if (!el) return
+    // استنى الخط والصور يحمّلوا قبل التصوير
+    if (document.fonts?.ready) await document.fonts.ready
     const canvas = await html2canvas(el, {
-      scale: 3,
+      scale: 4,
       backgroundColor: '#FFFFFF',
       useCORS: true,
+      logging: false,
     })
     const url = canvas.toDataURL('image/png')
     const a = document.createElement('a')
@@ -218,6 +245,250 @@ onMounted(loadMember)
 </script>
 
 <style>
+/*
+  كل المقاسات داخل الكارت بوحدة em،
+  فالكارت بيتكبر ويصغر بتغيير font-size بس:
+  - الشاشة: 16px  → عرض 400px
+  - الطباعة: 3.4mm → عرض 85mm بالظبط
+*/
+:root {
+  --c-navy: #16324f;
+  --c-sea: #2b6a8a;
+  --c-gold: #d6a756;
+  --c-gold-soft: #fbf3e2;
+  --c-sky: #eaf3f8;
+  --c-text: #3d5a6e;
+  --c-muted: #8fa0af;
+}
+
+.cards-grid {
+  display: flex;
+  justify-content: center;
+}
+
+.member-card {
+  position: relative;
+  overflow: hidden;
+  font-size: 16px;
+  width: 25em;
+  max-width: 100%;
+  height: 15.9em;
+  background: #fff;
+  border-radius: 0.9em;
+  border: 1px solid #dfe8ee;
+  box-shadow: 0 0.5em 1.6em rgba(22, 50, 79, 0.14);
+  font-family: 'Cairo', system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* على الشاشة: معاينة كارت واحد بس */
+.member-card:not(:first-child) {
+  display: none;
+}
+
+/* العلامة المائية */
+.card-watermark {
+  position: absolute;
+  top: 3.3em;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  height: calc(100% - 3.3em);
+  width: auto;
+  max-width: 80%;
+  object-fit: contain;
+  opacity: 0.08;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
+/* الهيدر */
+.card-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 3.3em;
+  padding: 0 1em;
+  color: #fff;
+  background: linear-gradient(115deg, var(--c-navy) 0%, var(--c-sea) 100%);
+  border-bottom: 0.2em solid var(--c-gold);
+  flex-shrink: 0;
+}
+
+.card-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+}
+
+.logo-badge {
+  width: 2.3em;
+  height: 2.3em;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15em;
+  box-shadow: 0 0 0 0.12em rgba(255, 255, 255, 0.35);
+  flex-shrink: 0;
+}
+
+.logo-badge img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
+.logo-title {
+  margin: 0;
+  font-size: 0.95em;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.logo-sub {
+  margin: 0;
+  font-size: 0.6em;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.card-id {
+  direction: ltr;
+  font-size: 0.8em;
+  font-weight: 700;
+  color: var(--c-navy);
+  background: var(--c-gold);
+  padding: 0.15em 0.8em;
+  line-height: 1.7;
+  border-radius: 99em;
+}
+
+/* المحتوى */
+.card-body {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.9em;
+  padding: 0.5em 1em 0.3em;
+}
+
+.card-qr {
+  flex-shrink: 0;
+  background: #fff;
+  border: 1px solid #e3ebf0;
+  border-radius: 0.6em;
+  padding: 0.3em;
+  box-shadow: 0 0.15em 0.5em rgba(22, 50, 79, 0.08);
+}
+
+.qr-canvas {
+  display: block;
+  width: 5.4em !important;
+  height: 5.4em !important;
+}
+
+.card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+}
+
+.info-name {
+  margin: 0;
+  font-size: 1.05em;
+  font-weight: 700;
+  color: var(--c-navy);
+  line-height: 1.6;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3em;
+}
+
+.chip {
+  font-size: 0.6em;
+  font-weight: 600;
+  padding: 0.1em 0.7em;
+  line-height: 1.7;
+  border-radius: 99em;
+  white-space: nowrap;
+}
+
+.chip-gold {
+  background: var(--c-gold-soft);
+  color: #8a6420;
+}
+
+.chip-blue {
+  background: var(--c-sky);
+  color: var(--c-sea);
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  font-size: 0.6em;
+  color: var(--c-text);
+  line-height: 1.7;
+  white-space: normal;
+}
+
+.info-icon {
+  flex-shrink: 0;
+  font-size: 1em;
+}
+
+/* ولي الأمر */
+.card-parent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  margin: 0 1em;
+  padding: 0.3em 0.8em;
+  font-size: 0.62em;
+  line-height: 1.8;
+  color: var(--c-text);
+  background: rgba(234, 243, 248, 0.85);
+  border-radius: 0.6em;
+  flex-wrap: wrap;
+}
+
+.card-parent .dot {
+  color: var(--c-gold);
+}
+
+.card-footer {
+  position: relative;
+  z-index: 1;
+  padding: 0.35em 0 0.45em;
+  line-height: 1.8;
+  font-size: 0.5em;
+  text-align: center;
+  color: var(--c-muted);
+}
+
+/* ===== Print ===== */
 @media print {
   @page {
     size: A4;
@@ -238,190 +509,32 @@ onMounted(loadMember)
     left: 0;
     top: 0;
     width: 100%;
-    background: white !important;
-    padding: 0 !important;
-    margin: 0 !important;
+    background: white;
   }
 
-  #print-area .cards-grid {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 8mm !important;
-    page-break-inside: avoid;
-    padding: 5mm;
-  }
-
-  #print-area .member-card {
-    width: 85mm !important;
-    height: 54mm !important;
-    border: 1px solid #ccc !important;
-    border-radius: 3mm !important;
-    background: white !important;
-    page-break-inside: avoid;
-    overflow: hidden;
-    box-shadow: none !important;
-  }
-
-  #print-area .card-header,
-  #print-area .card-body,
-  #print-area .card-footer {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-}
-
-.cards-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  max-width: 700px;
-  margin: 0 auto;
-}
-
-.member-card {
-  width: 100%;
-  aspect-ratio: 85 / 54;
-  border: 1.5px solid #D9E2E8;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #F5F8FA 0%, #FFFFFF 100%);
-  padding: 6px 10px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  position: relative;
-  overflow: hidden;
-  font-family: 'Cairo', system-ui, sans-serif;
-}
-
-.member-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #D6A756 0%, #F5E6B8 50%, #D6A756 100%);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.card-logo {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.logo-icon {
-  font-size: 14px;
-}
-
-.logo-title {
-  font-size: 8.5px;
-  font-weight: 700;
-  color: #16324F;
-  line-height: 1.2;
-  margin: 0;
-}
-
-.logo-sub {
-  font-size: 7px;
-  color: #5A7386;
-  line-height: 1.2;
-  margin: 0;
-}
-
-.card-id {
-  font-size: 9px;
-  font-weight: 700;
-  color: #D6A756;
-  background: rgba(214, 167, 86, 0.1);
-  padding: 2px 5px;
-  border-radius: 3px;
-  direction: ltr;
-}
-
-.card-divider {
-  height: 1px;
-  background: #E5ECF0;
-  margin: 3px 0;
-}
-
-.card-body {
-  display: flex;
-  gap: 8px;
-  flex: 1;
-  align-items: center;
-}
-
-.card-qr {
-  flex-shrink: 0;
-  background: white;
-  border: 1px solid #E5ECF0;
-  border-radius: 4px;
-  padding: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.qr-canvas {
-  display: block;
-  width: 42px !important;
-  height: 42px !important;
-}
-
-.card-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-}
-
-.info-name {
-  font-size: 9px;
-  font-weight: 700;
-  color: #16324F;
-  margin: 0 0 2px 0;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.info-row {
-  font-size: 7px;
-  color: #5A7386;
-  margin: 0;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.info-row strong {
-  color: #16324F;
-  font-weight: 600;
-}
-
-.card-footer {
-  font-size: 6.5px;
-  color: #8FA0AF;
-  text-align: center;
-  padding-top: 2px;
-  border-top: 1px dashed #E5ECF0;
-  margin-top: 3px;
-}
-
-@media (max-width: 640px) {
   .cards-grid {
-    grid-template-columns: 1fr;
+    display: grid !important;
+    grid-template-columns: repeat(2, 85mm);
+    justify-content: center;
+    gap: 8mm;
+    padding: 5mm 0;
+  }
+
+  .member-card,
+  .member-card:not(:first-child) {
+    display: flex !important;
+    font-size: 3.4mm; /* 25em = 85mm */
+    width: 85mm;
+    height: 54mm;
+    box-shadow: none;
+    border: 0.2mm dashed #b8c4cc;
+    border-radius: 3mm;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .print\:hidden {
+    display: none !important;
   }
 }
 
