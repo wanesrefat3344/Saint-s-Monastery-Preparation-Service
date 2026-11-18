@@ -108,8 +108,11 @@
             </select>
           </div>
           <div class="flex justify-end gap-2 pt-2">
-            <button type="button" @click="showModal = false" class="btn-cancel">إلغاء</button>
-            <button type="submit" :disabled="saving" class="btn-success">{{ saving ? '...' : (editingId ? 'حفظ' : 'إضافة') }}</button>
+            <button type="button" @click="showModal = false" class="btn-cancel" :disabled="saving">إلغاء</button>
+            <button type="submit" :disabled="saving" class="btn-success flex items-center gap-2">
+              <span v-if="saving" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+              {{ saving ? 'جاري الحفظ...' : (editingId ? 'حفظ' : 'إضافة') }}
+            </button>
           </div>
         </form>
       </div>

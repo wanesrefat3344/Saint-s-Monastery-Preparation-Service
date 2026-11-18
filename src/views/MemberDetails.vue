@@ -9,13 +9,12 @@
       </div>
 
       <div v-else>
-        <div class="flex items-start justify-between mb-6">
-          <div>
-            <h1 class="text-2xl font-bold text-navy">{{ member.full_name }}</h1>
-            <p class="text-sm text-navy/60 mt-1">مسجّل في: {{ formatDate(member.created_at) }}</p>
-          </div>
-          <div class="flex gap-2 flex-wrap">
-            <!-- ✅ زرار البطاقة -->
+        <PageHeader
+          :title="member.full_name"
+          :subtitle="`مسجّل في: ${formatDate(member.created_at)}`"
+          showHome
+        >
+          <template #actions>
             <router-link
               :to="`/members/${member.id}/card`"
               class="px-4 py-2 rounded-lg bg-gold text-white text-sm font-medium hover:opacity-90 inline-flex items-center gap-1.5"
@@ -23,9 +22,8 @@
               🪪 البطاقة
             </router-link>
             <router-link :to="`/members/${member.id}/edit`" class="px-4 py-2 rounded-lg bg-brand text-white text-sm hover:bg-brand/90">تعديل</router-link>
-            <router-link to="/members" class="px-4 py-2 rounded-lg border border-border text-navy bg-card hover:bg-navy/5">رجوع</router-link>
-          </div>
-        </div>
+          </template>
+        </PageHeader>
 
         <section class="card mb-4">
           <h2 class="text-lg font-semibold text-navy mb-4 flex items-center gap-2">
@@ -75,6 +73,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api/client'
+import PageHeader from '../components/PageHeader.vue'
 
 const Info = {
   props: ['label', 'value', 'dir'],

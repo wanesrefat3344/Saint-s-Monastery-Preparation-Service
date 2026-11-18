@@ -3,24 +3,10 @@
     <div class="max-w-3xl mx-auto">
 
       <!-- Header -->
-      <div class="mb-6 flex items-start justify-between gap-3">
-        <div class="flex items-start gap-3">
-          <button
-            type="button"
-            @click="goBack"
-            class="mt-1 shrink-0 w-10 h-10 rounded-full bg-card border border-border text-navy flex items-center justify-center hover:bg-navy hover:text-white transition-colors"
-            aria-label="رجوع"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-          <div>
-            <h1 class="text-2xl font-bold text-navy">تسجيل مخدوم جديد</h1>
-            <p class="text-sm text-navy/60 mt-1">املأ البيانات التالية لتسجيل مخدوم في الخدمة</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="تسجيل مخدوم جديد"
+        subtitle="املأ البيانات التالية لتسجيل مخدوم في الخدمة"
+      />
 
       <!-- Draft notice -->
       <div v-if="hasDraft && !draftLoaded" class="mb-4 rounded-lg bg-gold/10 border border-gold text-navy px-4 py-3 text-sm flex items-center justify-between gap-3">
@@ -161,7 +147,8 @@
     <div class="fixed bottom-0 inset-x-0 z-20 bg-card/95 backdrop-blur border-t border-border">
       <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-end gap-3">
         <button type="button" @click="resetForm" :disabled="loading" class="btn-cancel">إلغاء</button>
-        <button type="button" @click="submitForm" :disabled="loading" class="btn-success">
+        <button type="button" @click="submitForm" :disabled="loading" class="btn-success flex items-center gap-2">
+          <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
           {{ loading ? 'جارٍ الحفظ...' : 'حفظ البيانات' }}
         </button>
       </div>
@@ -170,12 +157,14 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { reactive, ref, computed, onMounted, watch } from 'vue'
+import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import api from '../api/client'
 import { useAutoSave } from '../composables/useAutoSave'
+import PageHeader from '../components/PageHeader.vue'
 
 const router = useRouter()
+const isDirty = ref(false)
 
 const grades = ['الصف الأول الإعدادي', 'الصف الثاني الإعدادي', 'الصف الثالث الإعدادي']
 const relations = ['أب', 'أم', 'أخ', 'أخت', 'عم', 'خال', 'جد', 'جدة', 'غير ذلك']

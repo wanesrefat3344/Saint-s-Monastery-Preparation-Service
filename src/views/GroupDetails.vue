@@ -53,31 +53,12 @@
       <template v-else>
 
         <!-- Header -->
-        <header class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
-          <div class="flex items-center gap-3 min-w-0">
-            <div class="w-14 h-14 rounded-2xl bg-brand/10 text-brand flex items-center justify-center text-2xl font-bold shrink-0">
-              {{ group.name.charAt(0) }}
-            </div>
-            <div class="min-w-0">
-              <p class="text-xs text-navy/50 mb-0.5">تفاصيل المجموعة</p>
-              <h1 class="text-2xl font-bold text-navy truncate">{{ group.name }}</h1>
-              <p class="text-sm text-navy/60 mt-1 flex items-center gap-2 flex-wrap">
-                <span class="inline-flex items-center gap-1">
-                  <Icon name="user" class="w-3.5 h-3.5" />
-                  {{ group.servant_name || 'بدون خادم' }}
-                </span>
-                <span v-if="group.co_servant_name" class="inline-flex items-center gap-1 text-navy/40">
-                  • مساعد: {{ group.co_servant_name }}
-                </span>
-                <span class="inline-flex items-center gap-1">
-                  <Icon name="users" class="w-3.5 h-3.5" />
-                  {{ members.length }} عضو
-                </span>
-              </p>
-            </div>
-          </div>
-
-          <div class="flex gap-2 flex-wrap self-start sm:self-auto">
+        <PageHeader
+          :title="group.name"
+          :subtitle="`تفاصيل المجموعة · ${group.servant_name || 'بدون خادم'} ${group.co_servant_name ? '· مساعد: ' + group.co_servant_name : ''}`"
+          showHome
+        >
+          <template #actions>
             <router-link
               :to="`/groups/${group.id}/challenges`"
               class="inline-flex items-center gap-1.5 rounded-lg bg-gold px-3.5 py-2 text-sm text-white font-medium hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/40"
@@ -85,15 +66,8 @@
               <Icon name="trophy" class="w-4 h-4" />
               التحديات
             </router-link>
-            <button
-              @click="goBack"
-              class="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-navy/70 hover:text-brand hover:border-brand/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-            >
-              <Icon name="arrow-right" class="w-4 h-4" />
-              رجوع
-            </button>
-          </div>
-        </header>
+          </template>
+        </PageHeader>
 
         <!-- Success -->
         <transition name="fade">
@@ -455,6 +429,7 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '../api/client'
 import { calculateRiskScore } from '../utils/riskScore'
 import { calculateGroupScore } from '../utils/groupScore'
+import PageHeader from '../components/PageHeader.vue'
 
 const RECENT = 4 // عدد آخر الاجتماعات لحساب نسبة الحضور
 const STREAK_WINDOW = 8 // أقصى عدد اجتماعات للبحث عن غياب متتالي

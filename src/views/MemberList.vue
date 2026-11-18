@@ -3,29 +3,11 @@
     <div class="max-w-7xl mx-auto py-8 px-4 pb-24">
 
       <!-- Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div class="flex items-start gap-3">
-          <button
-            type="button"
-            @click="goBack"
-            class="mt-1 shrink-0 w-10 h-10 rounded-full bg-card border border-border text-navy flex items-center justify-center hover:bg-navy hover:text-white transition-colors"
-            aria-label="رجوع"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-          <div>
-            <h1 class="text-2xl font-bold text-navy">قائمة المخدومين</h1>
-            <p class="text-sm text-navy/60 mt-1">
-              إجمالي: {{ members.length }} مخدوم
-              <span v-if="filtered.length !== members.length" class="text-brand">
-                · معروض: {{ filtered.length }}
-              </span>
-            </p>
-          </div>
-        </div>
-        <div class="flex items-center gap-2 self-start sm:self-auto">
+      <PageHeader
+        title="قائمة المخدومين"
+        :subtitle="`إجمالي: ${members.length} مخدوم ${filtered.length !== members.length ? '· معروض: ' + filtered.length : ''}`"
+      >
+        <template #actions>
           <button
             @click="exportExcel"
             :disabled="filtered.length === 0"
@@ -39,8 +21,8 @@
           >
             + تسجيل مخدوم
           </router-link>
-        </div>
-      </div>
+        </template>
+      </PageHeader>
 
       <!-- Search & Filters -->
       <SearchFilter
@@ -262,6 +244,7 @@ import * as XLSX from 'xlsx'
 import api from '../api/client'
 import { calculateRiskScore, riskColor } from '../utils/riskScore'
 import { usePagination } from '../composables/usePagination'
+import PageHeader from '../components/PageHeader.vue'
 import SkeletonTable from '../components/SkeletonTable.vue'
 import EmptyState from '../components/EmptyState.vue'
 import SearchFilter from '../components/SearchFilter.vue'
