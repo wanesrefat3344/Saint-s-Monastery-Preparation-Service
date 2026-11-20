@@ -18,7 +18,19 @@
         {{ successMessage }}
       </div>
 
-      <div v-if="pendingNominations.length === 0" class="card text-center py-16">
+      <div v-if="loading" class="space-y-3">
+        <div v-for="i in 3" :key="i" class="card animate-pulse">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-navy/5"></div>
+            <div class="space-y-2">
+              <div class="h-5 w-48 rounded bg-navy/5"></div>
+              <div class="h-4 w-64 rounded bg-navy/5"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-else-if="pendingNominations.length === 0" class="card text-center py-16">
         <div class="text-4xl mb-3">👑</div>
         <p class="text-navy/60 mb-1">مفيش ترشيحات معلقة</p>
         <p class="text-xs text-navy/40">لما خادم يرشح ليدر لمجموعته، هيظهر هنا</p>
@@ -57,15 +69,25 @@
           <div class="flex justify-end gap-2">
             <button
               @click="reject(n)"
-              class="px-4 py-2 rounded-lg bg-danger/10 text-danger text-sm hover:bg-danger/20 transition"
+              :disabled="processing === n.group_id"
+              class="px-4 py-2 rounded-lg bg-danger/10 text-danger text-sm hover:bg-danger/20 transition disabled:opacity-50"
             >
-              ✕ رفض
+              <span v-if="processing === n.group_id" class="flex items-center gap-1">
+                <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                جارٍ الرفض...
+              </span>
+              <span v-else>✕ رفض</span>
             </button>
             <button
               @click="approve(n)"
-              class="px-4 py-2 rounded-lg bg-success text-white text-sm hover:bg-success/90 transition"
+              :disabled="processing === n.group_id"
+              class="px-4 py-2 rounded-lg bg-success text-white text-sm hover:bg-success/90 transition disabled:opacity-50"
             >
-              ✓ موافقة
+              <span v-if="processing === n.group_id" class="flex items-center gap-1">
+                <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                جارٍ الموافقة...
+              </span>
+              <span v-else>✓ موافقة</span>
             </button>
           </div>
         </div>
@@ -88,9 +110,11 @@
             </div>
             <button
               @click="removeLeader(l)"
-              class="text-danger text-xs hover:bg-danger/10 px-2 py-1 rounded"
+              :disabled="processing === l.group_id"
+              class="text-danger text-xs hover:bg-danger/10 px-2 py-1 rounded disabled:opacity-50"
             >
-              إزالة
+              <span v-if="processing === l.group_id">جارٍ الإزالة...</span>
+              <span v-else>إزالة</span>
             </button>
           </li>
         </ul>
@@ -101,47 +125,42 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { DEMO_MODE } from '../config'
+import api from '../api/client'
 import { logActivity } from '../utils/auditLog'
 
 const user = JSON.parse(localStorage.getItem('user') || '{}')
-const groups = ref([])
-const members = ref([])
-const users = ref([])
+const loading = ref(true)
+const processing = ref(null)
 const successMessage = ref('')
+const errorMessage = ref('')
+
+// We'll fetch groups with leader info from the backend
+const groups = ref([])
 
 const pendingNominations = computed(() => {
   return groups.value
     .filter((g) => g.leader_pending)
-    .map((g) => {
-      const member = members.value.find((m) => m.id === g.leader_pending)
-      const nominer = users.value.find((u) => u.email === g.leader_nominated_by)
-      return {
-        group_id: g.id,
-        group_name: g.name,
-        member_id: g.leader_pending,
-        member_name: member?.full_name || 'غير معروف',
-        nominated_by_email: g.leader_nominated_by,
-        nominated_by_name: nominer?.name || g.leader_nominated_by,
-        nominated_at: g.leader_nominated_at,
-        member_count: members.value.filter((m) => m.group_id === g.id).length,
-      }
-    })
+    .map((g) => ({
+      group_id: g.id,
+      group_name: g.name,
+      member_id: g.leader_pending,
+      member_name: g.leader_pending_name || 'غير معروف',
+      nominated_by_name: g.leader_nominated_by_name || g.leader_nominated_by || 'غير معروف',
+      nominated_at: g.leader_nominated_at,
+      member_count: g.member_count || 0,
+    }))
     .sort((a, b) => new Date(b.nominated_at) - new Date(a.nominated_at))
 })
 
 const approvedLeaders = computed(() => {
   return groups.value
     .filter((g) => g.leader_id)
-    .map((g) => {
-      const member = members.value.find((m) => m.id === g.leader_id)
-      return {
-        group_id: g.id,
-        group_name: g.name,
-        member_id: g.leader_id,
-        member_name: member?.full_name || 'غير معروف',
-      }
-    })
+    .map((g) => ({
+      group_id: g.id,
+      group_name: g.name,
+      member_id: g.leader_id,
+      member_name: g.leader_name || 'غير معروف',
+    }))
 })
 
 function formatDate(d) {
@@ -152,89 +171,95 @@ function formatDate(d) {
   })
 }
 
-function loadData() {
-  groups.value = JSON.parse(localStorage.getItem('demo_groups') || '[]')
-  members.value = JSON.parse(localStorage.getItem('demo_members') || '[]')
-  users.value = JSON.parse(localStorage.getItem('demo_users') || '[]')
-}
-
-function saveGroups() {
-  localStorage.setItem('demo_groups', JSON.stringify(groups.value))
-}
-
-function approve(nomination) {
-  if (!confirm(`تعيين "${nomination.member_name}" كليد لـ "${nomination.group_name}"؟`)) return
-
-  const idx = groups.value.findIndex((g) => g.id === nomination.group_id)
-  if (idx !== -1) {
-    groups.value[idx] = {
-      ...groups.value[idx],
-      leader_id: nomination.member_id,
-      leader_pending: null,
-      leader_nominated_by: null,
-      leader_nominated_at: null,
-      leader_approved_by: user.email,
-      leader_approved_at: new Date().toISOString(),
-    }
+async function loadData() {
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    // Fetch groups with leader info - we need an endpoint that includes leader_pending, leader_id, etc.
+    // Based on the audit, the backend's GET /groups should include these fields
+    const { data } = await api.get('/groups')
+    groups.value = data
+  } catch (e) {
+    console.error('Failed to load leader nominations:', e)
+    errorMessage.value = e.response?.data?.message || 'فشل تحميل الترشيحات، تأكد من الاتصال بالإنترنت وحاول تاني'
+  } finally {
+    loading.value = false
   }
-  saveGroups()
+}
 
-  logActivity('group.approve_leader', {
-    group: nomination.group_name,
-    member: nomination.member_name,
-  })
-
-  successMessage.value = `تم تعيين "${nomination.member_name}" كليد لـ "${nomination.group_name}" ✅`
+function showSuccess(text) {
+  successMessage.value = text
   setTimeout(() => (successMessage.value = ''), 3000)
 }
 
-function reject(nomination) {
+async function approve(nomination) {
+  if (!confirm(`تعيين "${nomination.member_name}" كليد لـ "${nomination.group_name}"؟`)) return
+
+  processing.value = nomination.group_id
+  try {
+    // PATCH /groups/:id/approve-leader
+    await api.patch(`/groups/${nomination.group_id}/approve-leader`)
+
+    logActivity('group.approve_leader', {
+      group: nomination.group_name,
+      member: nomination.member_name,
+    })
+
+    showSuccess(`تم تعيين "${nomination.member_name}" كليد لـ "${nomination.group_name}" ✅`)
+    await loadData()
+  } catch (e) {
+    console.error(e)
+    alert(e.response?.data?.message || 'فشلت الموافقة، حاول تاني')
+  } finally {
+    processing.value = null
+  }
+}
+
+async function reject(nomination) {
   if (!confirm(`رفض ترشيح "${nomination.member_name}"؟`)) return
 
-  const idx = groups.value.findIndex((g) => g.id === nomination.group_id)
-  if (idx !== -1) {
-    groups.value[idx] = {
-      ...groups.value[idx],
-      leader_pending: null,
-      leader_nominated_by: null,
-      leader_nominated_at: null,
-    }
+  processing.value = nomination.group_id
+  try {
+    // PATCH /groups/:id/reject-leader
+    await api.patch(`/groups/${nomination.group_id}/reject-leader`)
+
+    logActivity('group.reject_leader', {
+      group: nomination.group_name,
+      member: nomination.member_name,
+    })
+
+    showSuccess(`تم رفض الترشيح ✅`)
+    await loadData()
+  } catch (e) {
+    console.error(e)
+    alert(e.response?.data?.message || 'فشل الرفض، حاول تاني')
+  } finally {
+    processing.value = null
   }
-  saveGroups()
-
-  logActivity('group.reject_leader', {
-    group: nomination.group_name,
-    member: nomination.member_name,
-  })
-
-  successMessage.value = `تم رفض الترشيح ✅`
-  setTimeout(() => (successMessage.value = ''), 2500)
 }
 
-function removeLeader(leader) {
+async function removeLeader(leader) {
   if (!confirm(`إزالة "${leader.member_name}" من ليدر "${leader.group_name}"؟`)) return
 
-  const idx = groups.value.findIndex((g) => g.id === leader.group_id)
-  if (idx !== -1) {
-    groups.value[idx] = {
-      ...groups.value[idx],
-      leader_id: null,
-      leader_approved_by: null,
-      leader_approved_at: null,
-    }
+  processing.value = leader.group_id
+  try {
+    // DELETE /groups/:id/leader
+    await api.delete(`/groups/${leader.group_id}/leader`)
+
+    logActivity('group.remove_leader', {
+      group: leader.group_name,
+      member: leader.member_name,
+    })
+
+    showSuccess(`تم إزالة "${leader.member_name}" ✅`)
+    await loadData()
+  } catch (e) {
+    console.error(e)
+    alert(e.response?.data?.message || 'فشلت الإزالة، حاول تاني')
+  } finally {
+    processing.value = null
   }
-  saveGroups()
-
-  logActivity('group.remove_leader', {
-    group: leader.group_name,
-    member: leader.member_name,
-  })
-
-  successMessage.value = `تم إزالة "${leader.member_name}" ✅`
-  setTimeout(() => (successMessage.value = ''), 2500)
 }
 
-onMounted(() => {
-  if (DEMO_MODE) loadData()
-})
+onMounted(loadData)
 </script>

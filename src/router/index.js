@@ -69,7 +69,7 @@ const routes = [
   { path: '/challenges/:id', name: 'challenge-details', component: ChallengeDetails, meta: { title: 'تفاصيل التحدي' } },
   { path: '/reading-books', name: 'reading-books', component: ReadingBooksList, meta: { adminOnly: true, title: 'أسفار القراءة' } },
   { path: '/readings', name: 'readings', component: ReadingsList, meta: { public: true, title: 'القراءات' } },
-  { path: '/readings/new', name: 'reading-new', component: ReadingForm, meta: { public: true, title: 'تسجيل قراءة' } },
+  { path: '/readings/new', name: 'reading-new', component: ReadingForm, meta: { title: 'تسجيل قراءة' } },
 ]
 
 const router = createRouter({

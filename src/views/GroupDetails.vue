@@ -66,6 +66,28 @@
               <Icon name="trophy" class="w-4 h-4" />
               التحديات
             </router-link>
+
+            <!-- ترشيح ليدر - للخادم المسؤول أو المساعد فقط -->
+            <button
+              v-if="isResponsibleServant && !group.leader_id && !group.leader_pending"
+              @click="openNominateLeader"
+              class="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm text-white font-medium hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+            >
+              <Icon name="user" class="w-4 h-4" />
+              ترشيح ليدر
+            </button>
+
+            <!-- إذا فيه ترشيح معلق -->
+            <div v-else-if="isResponsibleServant && group.leader_pending" class="inline-flex items-center gap-2 px-3.5 py-2 text-sm text-gold font-medium bg-gold/10 rounded-lg">
+              <Icon name="clock" class="w-4 h-4" />
+              <span>بانتظار الموافقة: {{ group.leader_pending_name || 'عضو' }}</span>
+            </div>
+
+            <!-- إذا فيه ليدر معتمد -->
+            <div v-else-if="group.leader_id" class="inline-flex items-center gap-2 px-3.5 py-2 text-sm text-success font-medium bg-success/10 rounded-lg">
+              <Icon name="trophy" class="w-4 h-4" />
+              <span>ليد معتمد: {{ group.leader_name || 'عضو' }}</span>
+            </div>
           </template>
         </PageHeader>
 
@@ -418,6 +440,111 @@
           </div>
         </transition>
 
+        <!-- ============ Nominate Leader Modal ============ -->
+        <transition name="fade">
+          <div
+            v-if="showNominateLeader"
+            class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 sm:p-4"
+            @click.self="closeNominateLeader"
+          >
+            <div
+              class="flex flex-col w-full sm:max-w-md max-h-[92vh] rounded-t-2xl sm:rounded-2xl bg-card border border-border shadow-xl"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="nominate-title"
+            >
+              <!-- Sheet header -->
+              <div class="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
+                <div class="min-w-0">
+                  <h3 id="nominate-title" class="text-lg font-semibold text-navy">ترشيح ليدر لـ «{{ group.name }}»</h3>
+                  <p class="text-xs text-navy/50 mt-0.5">
+                    اختر عضو من المجموعة لترشيحه كقائد
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  @click="closeNominateLeader"
+                  class="shrink-0 w-9 h-9 rounded-full text-navy/60 hover:bg-page hover:text-navy flex items-center justify-center transition-colors"
+                  aria-label="إغلاق"
+                >
+                  <Icon name="x" class="w-5 h-5" />
+                </button>
+              </div>
+
+              <!-- Body -->
+              <div class="flex-1 overflow-y-auto min-h-[12rem] px-5 pb-4">
+                <div v-if="eligibleForLeader.length === 0" class="py-14 px-5 text-center">
+                  <p class="text-sm text-navy/60">مفيش أعضاء مؤهلين للترشيح في المجموعة</p>
+                </div>
+
+                <template v-else>
+                  <label class="flex items-center gap-3 px-5 py-2.5 bg-page/60 border-b border-border text-sm text-navy cursor-pointer sticky top-0 z-10">
+                    <input
+                      type="checkbox"
+                      class="w-4 h-4 accent-brand shrink-0"
+                      :checked="false"
+                    />
+                    <span>اختر عضو</span>
+                  </label>
+
+                  <ul class="divide-y divide-border">
+                    <li v-for="m in eligibleForLeader" :key="m.id">
+                      <label
+                        class="flex items-center gap-3 px-5 py-2.5 cursor-pointer hover:bg-page/60 transition-colors"
+                        :class="selectedLeaderId == m.id ? 'bg-brand/5' : ''"
+                      >
+                        <input
+                          type="radio"
+                          class="w-4 h-4 accent-brand shrink-0"
+                          :checked="selectedLeaderId == m.id"
+                          @change="selectedLeaderId = String(m.id)"
+                        />
+                        <div class="w-8 h-8 rounded-lg bg-navy/5 text-navy/70 text-xs font-bold flex items-center justify-center shrink-0">
+                          {{ (m.full_name || '?').charAt(0) }}
+                        </div>
+                        <div class="min-w-0 flex-1">
+                          <p class="text-sm font-medium text-navy truncate">{{ m.full_name }}</p>
+                          <p class="text-xs text-navy/50 truncate flex items-center gap-2">
+                            <span class="inline-flex items-center gap-1">
+                              <Icon name="book" class="w-3 h-3" />{{ m.grade || '—' }}
+                            </span>
+                            <span v-if="m.address" class="inline-flex items-center gap-1">
+                              <Icon name="pin" class="w-3 h-3" />{{ m.address }}
+                            </span>
+                          </p>
+                        </div>
+                      </label>
+                    </li>
+                  </ul>
+                </template>
+              </div>
+
+              <!-- Footer -->
+              <div class="px-5 py-4 border-t border-border">
+                <p v-if="nominateError" class="text-sm text-danger mb-3" role="alert">{{ nominateError }}</p>
+                <div class="flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    @click="closeNominateLeader"
+                    :disabled="nominateLoading"
+                    class="px-4 py-2 rounded-lg border border-border text-navy hover:bg-page transition-colors disabled:opacity-50"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    type="button"
+                    @click="submitNominateLeader"
+                    :disabled="nominateLoading || !selectedLeaderId"
+                    class="shrink-0 px-5 py-2.5 rounded-lg bg-brand text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                  >
+                    {{ nominateLoading ? 'جارٍ الترشيح...' : 'ترشيح' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </transition>
+
       </template>
     </div>
   </div>
@@ -450,6 +577,7 @@ const ICONS = {
   search: 'M21 21l-4.35-4.35M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z',
   pin: 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0zM12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
   book: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z',
+  clock: 'M12 8v4l2 2M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z',
 }
 
 const Icon = {
@@ -500,6 +628,8 @@ const Stat = {
 const route = useRoute()
 const router = useRouter()
 
+const user = JSON.parse(localStorage.getItem('user') || '{}')
+
 /* ---------- Page state ---------- */
 const group = ref(null)
 const members = ref([])
@@ -513,11 +643,28 @@ const notFound = ref(false)
 const successMessage = ref('')
 const sortBy = ref('name')
 
+// Nominate Leader modal state
+const showNominateLeader = ref(false)
+const nominateLoading = ref(false)
+const nominateError = ref('')
+const selectedLeaderId = ref('')
+
 const sortOptions = [
   { value: 'name', label: 'الاسم' },
   { value: 'risk', label: 'الأعلى خطراً' },
   { value: 'attendance', label: 'الأقل حضوراً' },
 ]
+
+// Check if current user is the responsible servant (servant or co_servant) for this group
+const isResponsibleServant = computed(() => {
+  if (!group.value || !user.id) return false
+  return group.value.servant_id === user.id || group.value.co_servant_id === user.id
+})
+
+// Eligible members for leader nomination (members of this group without a leader role)
+const eligibleForLeader = computed(() => {
+  return members.value.filter((m) => m.id !== group.value?.leader_id)
+})
 
 let successTimer
 function showSuccess(text) {
@@ -650,6 +797,43 @@ function riskText(score) {
 function goBack() {
   if (window.history.length > 1) router.back()
   else router.push('/groups')
+}
+
+/* ---------- Nominate Leader ---------- */
+function openNominateLeader() {
+  selectedLeaderId.value = ''
+  nominateError.value = ''
+  showNominateLeader.value = true
+}
+
+function closeNominateLeader() {
+  showNominateLeader.value = false
+}
+
+async function submitNominateLeader() {
+  if (!selectedLeaderId.value) {
+    nominateError.value = 'اختر عضو لترشيحه'
+    return
+  }
+
+  nominateLoading.value = true
+  nominateError.value = ''
+
+  try {
+    // POST /groups/:id/nominate-leader
+    await api.post(`/groups/${group.value.id}/nominate-leader`, {
+      member_id: Number(selectedLeaderId.value),
+    })
+
+    showNominateLeader.value = false
+    showSuccess('تم ترشيح العضو كليد بنجاح ✅')
+    await loadData(true)
+  } catch (e) {
+    console.error(e)
+    nominateError.value = e.response?.data?.message || 'فشل الترشيح، حاول تاني'
+  } finally {
+    nominateLoading.value = false
+  }
 }
 
 /* ---------- Load ---------- */

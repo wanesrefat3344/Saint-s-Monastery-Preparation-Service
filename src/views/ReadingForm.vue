@@ -99,7 +99,10 @@
 
 <script setup>
 import { reactive, ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '../api/client'
+
+const router = useRouter()
 
 const user = JSON.parse(localStorage.getItem('user') || '{}')
 const isAdmin = computed(() => user.role === 'admin')

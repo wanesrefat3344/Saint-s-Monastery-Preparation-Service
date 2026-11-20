@@ -3,172 +3,166 @@
     <div class="max-w-2xl mx-auto">
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h1 class="text-2xl font-bold text-navy">📖 تسجيل قراءة جديدة</h1>
-          <p class="text-sm text-navy/60 mt-1">سجّل قراءتك من الإنجيل</p>
+          <h1 class="text-2xl font-bold text-navy">📖 القراءات</h1>
+          <p class="text-sm text-navy/60 mt-1">تصفح قراءات المخدومين</p>
         </div>
-        <router-link to="/readings" class="btn-cancel text-sm">رجوع</router-link>
+        <router-link to="/readings/new" class="btn-primary text-sm">
+          <Icon name="plus" class="w-4 h-4" />
+          تسجيل قراءة
+        </router-link>
       </div>
 
-      <div v-if="successMessage" class="mb-4 rounded-lg bg-success/10 border border-success text-success px-4 py-3 text-sm">
-        {{ successMessage }}
-      </div>
-      <div v-if="generalError" class="mb-4 rounded-lg bg-danger/10 border border-danger text-danger px-4 py-3 text-sm">
-        {{ generalError }}
-      </div>
-
-      <div v-if="books.length === 0" class="card text-center py-16">
-        <p class="text-navy/60 mb-4">مفيش أسفار متاحة للقراءة دلوقتي</p>
-        <p class="text-xs text-navy/40">اطلب من الأدمن يضيف أسفار الأول</p>
-      </div>
-
-      <form v-else @submit.prevent="submitForm" class="space-y-6">
-        <section v-if="isAdmin" class="card bg-gold/5 border-gold/30">
-          <h2 class="text-lg font-semibold text-navy mb-3">نوع القراءة</h2>
-          <div class="flex gap-2">
-            <button type="button" @click="form.visibility = 'public'" class="flex-1 px-3 py-2 rounded-lg text-sm transition" :class="form.visibility === 'public' ? 'bg-brand text-white' : 'bg-page text-navy'">
-              🌐 عامة (تظهر للكل)
-            </button>
-            <button type="button" @click="form.visibility = 'private'" class="flex-1 px-3 py-2 rounded-lg text-sm transition" :class="form.visibility === 'private' ? 'bg-gold text-white' : 'bg-page text-navy'">
-              🔒 خاصة (للأدمن بس)
-            </button>
-          </div>
-        </section>
-
-        <section class="card">
-          <h2 class="text-lg font-semibold text-navy mb-4">بياناتك</h2>
-          <div class="space-y-3">
-            <div>
-              <label class="block text-sm font-medium mb-1 text-navy">اسمك <span class="text-danger">*</span></label>
-              <input v-model.trim="form.memberName" type="text" class="input" :class="{ 'input-error': errors.memberName }" placeholder="اكتب اسمك الكامل" />
-              <p v-if="errors.memberName" class="error-text">{{ errors.memberName }}</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1 text-navy">البلد <span class="text-danger">*</span></label>
-              <input v-model.trim="form.country" type="text" class="input" :class="{ 'input-error': errors.country }" placeholder="مثال: مصر" />
-              <p v-if="errors.country" class="error-text">{{ errors.country }}</p>
+      <div v-if="loading" class="space-y-3">
+        <div v-for="i in 5" :key="i" class="card animate-pulse">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-navy/5"></div>
+            <div class="space-y-2 flex-1">
+              <div class="h-5 w-3/4 rounded bg-navy/5"></div>
+              <div class="h-4 w-1/2 rounded bg-navy/5"></div>
             </div>
           </div>
-        </section>
-
-        <section class="card">
-          <h2 class="text-lg font-semibold text-navy mb-4">القراءة</h2>
-          <div class="space-y-3">
-            <div>
-              <label class="block text-sm font-medium mb-1 text-navy">السفر <span class="text-danger">*</span></label>
-              <select v-model="form.bookId" class="input" :class="{ 'input-error': errors.bookId }" @change="form.chapter = ''">
-                <option value="">— اختر السفر —</option>
-                <optgroup label="📜 العهد القديم">
-                  <option v-for="b in oldBooks" :key="b.id" :value="b.id">{{ b.book_name }} ({{ b.total_chapters }} أصحاح)</option>
-                </optgroup>
-                <optgroup label="✝️ العهد الجديد">
-                  <option v-for="b in newBooks" :key="b.id" :value="b.id">{{ b.book_name }} ({{ b.total_chapters }} أصحاح)</option>
-                </optgroup>
-              </select>
-              <p v-if="errors.bookId" class="error-text">{{ errors.bookId }}</p>
-            </div>
-
-            <div v-if="selectedBook">
-              <label class="block text-sm font-medium mb-1 text-navy">الأصحاح <span class="text-danger">*</span></label>
-              <select v-model.number="form.chapter" class="input" :class="{ 'input-error': errors.chapter }">
-                <option value="">— اختر الأصحاح —</option>
-                <option v-for="n in selectedBook.total_chapters" :key="n" :value="n">الأصحاح {{ n }}</option>
-              </select>
-              <p v-if="errors.chapter" class="error-text">{{ errors.chapter }}</p>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium mb-1 text-navy">ملاحظات (اختياري)</label>
-              <textarea v-model.trim="form.notes" rows="2" class="input resize-none" placeholder="أي ملاحظات..."></textarea>
-            </div>
-          </div>
-        </section>
-
-        <div class="flex items-center justify-end gap-3">
-          <button type="button" @click="resetForm" class="btn-cancel">إلغاء</button>
-          <button type="submit" :disabled="loading" class="btn-success">
-            {{ loading ? 'جارٍ الحفظ...' : 'حفظ القراءة' }}
-          </button>
         </div>
-      </form>
+      </div>
+
+      <div v-else-if="errorMessage" class="card text-center py-8">
+        <Icon name="alert" class="w-10 h-10 text-danger mx-auto mb-2" />
+        <p class="text-navy/60 mb-2">{{ errorMessage }}</p>
+        <button @click="loadReadings" class="btn-primary text-sm">إعادة المحاولة</button>
+      </div>
+
+      <div v-else-if="readings.length === 0" class="card text-center py-16">
+        <div class="text-4xl mb-3">📖</div>
+        <p class="text-navy/60 mb-1">لا توجد قراءات بعد</p>
+        <p class="text-xs text-navy/40 mb-4">
+          <span v-if="isAuthenticated">كن أول من يسجل قراءة!</span>
+          <span v-else>سجل دخولك لتسجيل قراءة أو تصفح القراءات العامة</span>
+        </p>
+        <router-link v-if="!isAuthenticated" to="/login" class="btn-primary text-sm">تسجيل الدخول</router-link>
+        <router-link v-else to="/readings/new" class="btn-primary text-sm">
+          <Icon name="plus" class="w-4 h-4" />
+          تسجيل قراءة جديدة
+        </router-link>
+      </div>
+
+      <div v-else class="space-y-3">
+        <div
+          v-for="reading in readings"
+          :key="reading.id"
+          class="card hover:shadow-md transition-shadow"
+        >
+          <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-xl bg-brand/10 text-brand flex items-center justify-center text-xl shrink-0">
+              📖
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <h3 class="font-semibold text-navy truncate">{{ reading.book_name }} - أصحاح {{ reading.chapter }}</h3>
+                <span class="text-xs text-navy/50 whitespace-nowrap">{{ formatDate(reading.created_at) }}</span>
+              </div>
+              <p class="text-sm text-navy/70 mb-2">{{ reading.member_name }} · {{ reading.country }}</p>
+              <div class="flex items-center gap-2 text-xs text-navy/50 flex-wrap">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full" :class="reading.visibility === 'public' ? 'bg-success/10 text-success' : 'bg-gold/10 text-gold'">
+                  <span v-if="reading.visibility === 'public'">🌐</span>
+                  <span v-else>🔒</span>
+                  {{ reading.visibility === 'public' ? 'عامة' : 'خاصة' }}
+                </span>
+                <span v-if="reading.notes && isAuthenticated" class="bg-navy/5 text-navy/60 px-2 py-0.5 rounded-full">
+                  {{ reading.notes }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination if needed -->
+      <div v-if="!loading && readings.length > 0 && totalPages > 1" class="mt-6 flex items-center justify-center gap-2">
+        <button
+          @click="prevPage"
+          :disabled="currentPage === 1"
+          class="px-3 py-1.5 rounded-lg border border-border text-navy hover:bg-page disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+        >
+          السابق
+        </button>
+        <span class="text-sm text-navy/60">صفحة {{ currentPage }} من {{ totalPages }}</span>
+        <button
+          @click="nextPage"
+          :disabled="currentPage === totalPages"
+          class="px-3 py-1.5 rounded-lg border border-border text-navy hover:bg-page disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+        >
+          التالي
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '../api/client'
 
+const router = useRouter()
+
 const user = JSON.parse(localStorage.getItem('user') || '{}')
-const isAdmin = computed(() => user.role === 'admin')
+const token = localStorage.getItem('token')
+const isAuthenticated = computed(() => !!token)
 
-const books = ref([])
+const readings = ref([])
+const loading = ref(true)
+const errorMessage = ref('')
 
-const form = reactive({
-  memberName: '', country: '', bookId: '', chapter: '', notes: '', visibility: 'public',
-})
+// Pagination
+const currentPage = ref(1)
+const pageSize = 20
+const totalPages = ref(1)
 
-const errors = reactive({})
-const loading = ref(false)
-const successMessage = ref('')
-const generalError = ref('')
-
-const oldBooks = computed(() => books.value.filter((b) => b.book_type === 'old'))
-const newBooks = computed(() => books.value.filter((b) => b.book_type === 'new'))
-const selectedBook = computed(() => {
-  if (!form.bookId) return null
-  return books.value.find((b) => b.id === Number(form.bookId)) || null
-})
-
-function validate() {
-  Object.keys(errors).forEach((k) => delete errors[k])
-  if (!form.memberName) errors.memberName = 'الاسم مطلوب'
-  if (!form.country) errors.country = 'البلد مطلوب'
-  if (!form.bookId) errors.bookId = 'السفر مطلوب'
-  if (!form.chapter) errors.chapter = 'الأصحاح مطلوب'
-  return Object.keys(errors).length === 0
-}
-
-async function submitForm() {
-  successMessage.value = ''
-  generalError.value = ''
-  if (!validate()) return
-
+async function loadReadings() {
   loading.value = true
+  errorMessage.value = ''
   try {
-    await api.post('/readings', {
-      member_name: form.memberName,
-      country: form.country,
-      book_id: Number(form.bookId),
-      chapter: Number(form.chapter),
-      notes: form.notes || null,
-      visibility: form.visibility,
+    // The API handles authentication via interceptor
+    // If no token, it will return only public readings with hidden fields
+    const { data } = await api.get('/readings', {
+      params: {
+        page: currentPage.value,
+        limit: pageSize,
+      },
     })
-    successMessage.value = 'تم تسجيل القراءة ✅'
-    setTimeout(() => (successMessage.value = ''), 3000)
-    form.chapter = ''
-    form.notes = ''
+
+    readings.value = data.data || data.readings || data
+    totalPages.value = data.totalPages || Math.ceil((data.total || readings.value.length) / pageSize)
   } catch (e) {
-    generalError.value = e.response?.data?.message || 'فشل الحفظ'
+    console.error('Failed to load readings:', e)
+    errorMessage.value = e.response?.data?.message || 'فشل تحميل القراءات، تأكد من الاتصال بالإنترنت وحاول تاني'
   } finally {
     loading.value = false
   }
 }
 
-function resetForm() {
-  Object.assign(form, { memberName: '', country: '', bookId: '', chapter: '', notes: '', visibility: 'public' })
-  Object.keys(errors).forEach((k) => delete errors[k])
-  successMessage.value = ''
-  generalError.value = ''
-}
-
-async function loadBooks() {
-  try {
-    const { data } = await api.get('/reading-books')
-    books.value = data
-  } catch (e) {
-    console.error(e)
+function nextPage() {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+    loadReadings()
   }
 }
 
-onMounted(loadBooks)
+function prevPage() {
+  if (currentPage.value > 1) {
+    currentPage.value--
+    loadReadings()
+  }
+}
+
+function formatDate(dateString) {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleDateString('ar-EG', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
+onMounted(loadReadings)
 </script>
