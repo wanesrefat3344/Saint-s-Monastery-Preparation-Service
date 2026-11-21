@@ -66,7 +66,9 @@ async function submit() {
       email: email.value,
       password: password.value,
     })
-    localStorage.setItem('token', data.token)
+    // Backend returns accessToken, refreshToken, and user
+    localStorage.setItem('token', data.accessToken)
+    localStorage.setItem('refreshToken', data.refreshToken)
     localStorage.setItem('user', JSON.stringify(data.user))
     if (data.user?.role === 'reader') {
       router.push({ name: 'reading-new' })
