@@ -222,6 +222,105 @@
           </div>
         </section>
 
+        <!-- أعياد ميلاد الشهر -->
+        <section class="mb-10">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <h2 class="text-lg font-bold text-navy flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-gold"></span>
+              أعياد ميلاد {{ currentMonthLabel }}
+              <span v-if="hasTodayBirthdays" class="text-xs bg-gold text-white px-2 py-0.5 rounded-full font-medium animate-pulse">
+                {{ todayBirthdaysCount }} النهاردة 🎂
+              </span>
+            </h2>
+            <label class="relative block sm:w-48">
+              <span class="sr-only">اختر الشهر</span>
+              <Icon name="chevron" class="absolute top-1/2 -translate-y-1/2 start-3 w-4 h-4 text-navy/40 pointer-events-none rotate-90" />
+              <select
+                v-model="selectedMonth"
+                class="w-full rounded-xl border border-border bg-card ps-10 pe-8 py-2.5 text-sm text-navy appearance-none focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand/50 transition cursor-pointer"
+              >
+                <option v-for="(month, i) in MONTHS_AR" :key="i" :value="i + 1">
+                  {{ month }}
+                </option>
+              </select>
+            </label>
+          </div>
+
+          <!-- Loading Skeleton -->
+          <div v-if="birthdaysLoading" class="space-y-2 animate-pulse motion-reduce:animate-none">
+            <Skeleton class="h-14 rounded-xl" v-for="n in 5" :key="n" />
+          </div>
+
+          <!-- Empty State -->
+          <div v-else-if="!birthdaysForMonth.length" class="rounded-2xl border border-dashed border-border">
+            <EmptyState
+              icon="🎂"
+              title="مفيش أعياد ميلاد في {{ currentMonthLabel }}"
+              description="لا يوجد مخدومين عيد ميلادهم في هذا الشهر"
+              tone="gold"
+            />
+          </div>
+
+          <!-- Birthdays List -->
+          <div v-else class="space-y-2">
+            <div
+              v-for="m in birthdaysForMonth"
+              :key="m.id"
+              class="group relative flex items-center gap-3 rounded-2xl border border-border bg-card p-3 hover:border-brand/50 hover:shadow-md transition-all"
+              :class="{ 'ring-2 ring-gold/50 bg-gold/5': m.isToday }"
+            >
+              <!-- مؤشر "النهاردة" -->
+              <div v-if="m.isToday" class="absolute -top-2 -start-2 w-5 h-5 rounded-full bg-gold text-white text-[10px] font-bold flex items-center justify-center animate-bounce">
+                🎂
+              </div>
+
+              <!-- صورة/حرف أول -->
+              <div class="w-12 h-12 shrink-0 rounded-xl flex items-center justify-center text-sm font-bold" :class="m.isToday ? 'bg-gold/20 text-gold' : 'bg-brand/10 text-brand'">
+                {{ nameOf(m).charAt(0) }}
+              </div>
+
+              <!-- المعلومات -->
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <p class="text-sm font-semibold text-navy truncate">{{ nameOf(m) }}</p>
+                  <span v-if="m.isToday" class="text-xs bg-gold/10 text-gold px-2 py-0.5 rounded-full font-medium whitespace-nowrap animate-pulse">
+                    🎂 النهاردة!
+                  </span>
+                  <span v-else-if="m.isPast" class="text-xs bg-navy/10 text-navy/50 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+                    فات ({{ m.formattedDate }})
+                  </span>
+                  <span v-else class="text-xs bg-brand/10 text-brand px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+                    {{ m.formattedDate }}
+                  </span>
+                </div>
+                <p class="text-xs text-navy/50 mt-0.5 flex items-center gap-2 flex-wrap">
+                  <span>العمر: <strong>{{ m.turningAge }}</strong> سنة</span>
+                  <span v-if="m.group_name" class="bg-brand/10 text-brand px-1.5 py-0.5 rounded text-[10px]">{{ m.group_name }}</span>
+                  <span v-else class="text-navy/40 text-[10px]">بدون مجموعة</span>
+                </p>
+              </div>
+
+              <!-- أزرار الإجراءات -->
+              <div class="flex items-center gap-2 shrink-0">
+                <WhatsAppButton
+                  :phone="phoneOf(m)"
+                  :member-name="nameOf(m)"
+                  :parent-name="m.parent_name || ''"
+                />
+                <a
+                  v-if="phoneOf(m)"
+                  :href="`tel:${phoneOf(m)}`"
+                  class="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-brand/10 text-brand hover:bg-brand hover:text-white px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                  :aria-label="`اتصال بـ ${nameOf(m)}`"
+                >
+                  <Icon name="phone" class="w-3.5 h-3.5" />
+                  اتصال
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- كل الأقسام -->
         <section>
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
@@ -308,6 +407,10 @@ import api from '../api/client'
 import ThemeToggle from '../composables/ThemeToggle.vue'
 import { useCalculations } from '../composables/useCalculations'
 import { MAX_DASHBOARD_ROWS, ROLE_LABELS } from '../constants/app'
+import WhatsAppButton from '../components/WhatsAppButton.vue'
+import EmptyState from '../components/EmptyState.vue'
+import Skeleton from '../components/Skeleton.vue'
+import { getBirthdaysForMonth, MONTHS_AR, getCurrentMonth, filterMembersByPermission, countTodayBirthdays } from '../utils/birthdays'
 
 const ICONS = {
   plus: 'M12 5v14M5 12h14',
@@ -384,6 +487,10 @@ const error = ref(false)
 const tab = ref(null)
 const query = ref('')
 
+// أعياد الميلاد
+const selectedMonth = ref(getCurrentMonth())
+const birthdaysLoading = ref(false)
+
 const RING_C = 2 * Math.PI * 42
 
 const todayLabel = new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -428,7 +535,7 @@ const visibleList = computed(() => fullList.value.slice(0, MAX_DASHBOARD_ROWS))
 const hiddenCount = computed(() => Math.max(0, fullList.value.length - MAX_DASHBOARD_ROWS))
 
 const nameOf = (m) => m.name || m.full_name || 'بدون اسم'
-const phoneOf = (m) => m.phone || m.mobile || ''
+const phoneOf = (m) => m.parent_phone || m.member_phone || m.phone || m.mobile || ''
 const metaOf = (m) => {
   if (activeTab.value === 'absent') return `غاب ${m.consecutiveAbsent} مرات متتالية`
   return m.followupDays === null ? 'لم يتم افتقاده من قبل' : `آخر افتقاد من ${m.followupDays} يوم`
@@ -492,6 +599,22 @@ const bottomNav = computed(() => [
   { to: '/followups', label: 'الافتقاد', icon: 'phone', badge: needsFollowupCount.value || null },
 ])
 const isActive = (to) => (to === '/' ? route.path === '/' : route.path.startsWith(to))
+
+// === أعياد الميلاد ===
+// فلترة الأعضاء حسب صلاحيات المستخدم
+const permittedMembers = computed(() => filterMembersByPermission(members.value, user))
+
+// أعياد الميلاد للشهر المحدد
+const birthdaysForMonth = computed(() => getBirthdaysForMonth(permittedMembers.value, selectedMonth.value))
+
+// عدد أعياد الميلاد اليوم
+const todayBirthdaysCount = computed(() => countTodayBirthdays(permittedMembers.value))
+
+// الشهر الحالي
+const currentMonthLabel = computed(() => MONTHS_AR[selectedMonth.value - 1])
+
+// هل في أعياد ميلاد النهاردة؟
+const hasTodayBirthdays = computed(() => todayBirthdaysCount.value > 0)
 
 function logout() {
   localStorage.removeItem('token')
