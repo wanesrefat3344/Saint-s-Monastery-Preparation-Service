@@ -607,13 +607,11 @@ const permittedMembers = computed(() => filterMembersByPermission(members.value,
 
 // أعياد الميلاد للشهر المحدد
 const birthdaysForMonth = computed(() => {
-  if (members.value.length === 0) return []
   return getBirthdaysForMonth(permittedMembers.value, selectedMonth.value)
 })
 
 // عدد أعياد الميلاد اليوم
 const todayBirthdaysCount = computed(() => {
-  if (members.value.length === 0) return 0
   return countTodayBirthdays(permittedMembers.value)
 })
 
