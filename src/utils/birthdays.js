@@ -14,11 +14,7 @@ export function getBirthdaysForMonth(members, month, year = new Date().getFullYe
   const currentYear = today.getFullYear()
 
   return members
-    .filter(m => {
-      if (!m.birth_date) return false
-      const bd = new Date(m.birth_date)
-      return (bd.getMonth() + 1) === month
-    })
+    .filter(m => m && m.birth_date) // التأكد إن العضو موجود وله تاريخ ميلاد
     .map(m => {
       const bd = new Date(m.birth_date)
       const birthDay = bd.getDate()

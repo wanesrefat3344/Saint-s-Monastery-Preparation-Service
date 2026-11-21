@@ -605,10 +605,16 @@ const isActive = (to) => (to === '/' ? route.path === '/' : route.path.startsWit
 const permittedMembers = computed(() => filterMembersByPermission(members.value, user))
 
 // أعياد الميلاد للشهر المحدد
-const birthdaysForMonth = computed(() => getBirthdaysForMonth(permittedMembers.value, selectedMonth.value))
+const birthdaysForMonth = computed(() => {
+  if (members.value.length === 0) return []
+  return getBirthdaysForMonth(permittedMembers.value, selectedMonth.value)
+})
 
 // عدد أعياد الميلاد اليوم
-const todayBirthdaysCount = computed(() => countTodayBirthdays(permittedMembers.value))
+const todayBirthdaysCount = computed(() => {
+  if (members.value.length === 0) return 0
+  return countTodayBirthdays(permittedMembers.value)
+})
 
 // الشهر الحالي
 const currentMonthLabel = computed(() => MONTHS_AR[selectedMonth.value - 1])
