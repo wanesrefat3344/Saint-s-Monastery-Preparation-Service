@@ -35,6 +35,8 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/client'
+import { useCalculations } from '../composables/useCalculations'
+import { CONSECUTIVE_ABSENT_THRESHOLD } from '../constants/app'
 
 const router = useRouter()
 const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -49,33 +51,34 @@ const groupChallenges = ref({})
 function toggle() { open.value = !open.value }
 function goTo(n) { open.value = false; if (n.link) router.push(n.link) }
 
+/* Используем унифицированные вычисления */
+const {
+  needsFollowupList,
+  needsFollowupCount,
+  consecutiveAbsentList,
+  consecutiveAbsentCount,
+  noServantList,
+  noServantCount,
+  highRiskCount,
+} = useCalculations(members, attendanceData, followupsMap)
+
 const notifications = computed(() => {
   const list = []
-  const today = new Date()
 
   if (user.role === 'admin') {
     // 1. محتاجين افتقاد
-    const needsFollowup = members.value.filter((m) => {
-      const fu = followupsMap.value[m.id] || []
-      if (fu.length === 0) return true
-      const last = [...fu].sort((a, b) => new Date(b.date) - new Date(a.date))[0]
-      const days = Math.floor((today - new Date(last.date)) / (1000 * 60 * 60 * 24))
-      return days > 30
-    })
-    if (needsFollowup.length > 0) {
-      list.push({ icon: '📞', title: `${needsFollowup.length} مخدوم محتاجين افتقاد`, message: 'اضغط لمتابعتهم', link: '/followups' })
+    if (needsFollowupCount.value > 0) {
+      list.push({ icon: '📞', title: `${needsFollowupCount.value} مخدوم محتاجين افتقاد`, message: 'اضغط لمتابعتهم', link: '/followups' })
     }
 
-    // 2. غابوا 3 مرات
-    const consecutive = getConsecutiveAbsent()
-    if (consecutive.length > 0) {
-      list.push({ icon: '🚨', title: `${consecutive.length} مخدوم غابوا 3 مرات متتالية`, message: 'محتاجين متابعة عاجلة', link: '/' })
+    // 2. غابوا N مرات подряд
+    if (consecutiveAbsentCount.value > 0) {
+      list.push({ icon: '🚨', title: `${consecutiveAbsentCount.value} مخدوم غابوا ${CONSECUTIVE_ABSENT_THRESHOLD} مرات متتالية`, message: 'محتاجين متابعة عاجلة', link: '/' })
     }
 
     // 3. معندهمش خادم
-    const noServant = members.value.filter((m) => !m.servant_id)
-    if (noServant.length > 0) {
-      list.push({ icon: '👤', title: `${noServant.length} مخدوم معندهمش خادم مسؤول`, message: 'عيّن لهم خادم', link: '/members' })
+    if (noServantCount.value > 0) {
+      list.push({ icon: '👤', title: `${noServantCount.value} مخدوم معندهمش خادم مسؤول`, message: 'عيّن لهم خادم', link: '/members' })
     }
 
     // 4. طلبات خدام
@@ -110,24 +113,6 @@ const notifications = computed(() => {
 })
 
 const total = computed(() => notifications.value.length)
-
-function getConsecutiveAbsent() {
-  const dates = Object.keys(attendanceData.value).map((k) => k.split('_')[0])
-    .filter((v, i, a) => a.indexOf(v) === i).sort().reverse().slice(0, 5)
-  if (dates.length < 3) return []
-
-  return members.value.filter((m) => {
-    let count = 0
-    for (const d of dates) {
-      const key = Object.keys(attendanceData.value).find((k) => k.startsWith(d))
-      if (!key) break
-      const records = attendanceData.value[key]
-      if (records[m.id] === false || records[m.id] === undefined) count++
-      else break
-    }
-    return count >= 3
-  })
-}
 
 async function loadData() {
   try {

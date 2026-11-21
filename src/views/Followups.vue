@@ -14,8 +14,8 @@
           <p class="text-xs text-navy/50 mb-1">متابعة المخدومين</p>
           <h1 class="text-2xl font-bold text-navy truncate">الافتقاد</h1>
           <p class="text-sm text-navy/60 mt-1">
-            <template v-if="needsFollowup.length > 0">
-              محتاجين تواصل: <span class="text-danger font-bold">{{ needsFollowup.length }}</span>
+            <template v-if="needsFollowup.value.length > 0">
+              محتاجين تواصل: <span class="text-danger font-bold">{{ needsFollowup.value.length }}</span>
             </template>
             <template v-else>الكل متابَع ✅</template>
           </p>
@@ -42,7 +42,7 @@
       <SkeletonTable v-if="loading" :rows="6" :columns="5" />
 
       <!-- Empty: no followups needed -->
-      <div v-else-if="needsFollowup.length === 0" class="card">
+      <div v-else-if="needsFollowup.value.length === 0" class="card">
         <EmptyState
           icon="✅"
           title="كل المخدومين تم التواصل معهم"
@@ -52,7 +52,7 @@
       </div>
 
       <!-- Empty: no filtered results -->
-      <div v-else-if="filtered.length === 0" class="card">
+      <div v-else-if="filtered.value.length === 0" class="card">
         <EmptyState
           icon="🔍"
           title="لا توجد نتائج مطابقة"
@@ -66,8 +66,13 @@
 
       <!-- Content: Desktop Table + Mobile Cards -->
       <template v-else>
-        <!-- Desktop Table -->
-        <div class="card overflow-hidden p-0 hidden md:block">
+        <div v-if="!filtered.value.length" class="card text-center text-navy/50 py-10">
+          مفيش نتايج مطابقة
+          <button @click="clearFilters" class="block mx-auto mt-3 text-sm text-brand hover:underline">مسح الفلاتر</button>
+        </div>
+        <template v-else>
+          <!-- Desktop Table -->
+          <div class="card overflow-hidden p-0 hidden md:block">
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
@@ -93,8 +98,8 @@
                     <span class="font-mono text-xs text-navy/80" dir="ltr">{{ m.parent_phone }}</span>
                   </td>
                   <td class="px-4 py-3 text-xs">
-                    <span v-if="m.daysSince === null" class="rounded-full bg-danger/5 text-danger px-2 py-0.5">لم يتم</span>
-                    <span v-else class="rounded-full bg-danger/5 text-danger px-2 py-0.5">من {{ m.daysSince }} يوم</span>
+                    <span v-if="m.followupDays === null" class="rounded-full bg-danger/5 text-danger px-2 py-0.5">لم يتم</span>
+                    <span v-else class="rounded-full bg-danger/5 text-danger px-2 py-0.5">من {{ m.followupDays }} يوم</span>
                   </td>
                   <td class="px-4 py-3 text-center">
                     <button @click="markDone(m.id)" :disabled="marking === m.id" class="rounded-lg bg-brand px-3 py-1.5 text-xs text-white hover:opacity-90 disabled:opacity-50">
@@ -113,7 +118,7 @@
             <div class="flex items-start justify-between gap-2 mb-2">
               <router-link :to="`/members/${m.id}`" class="font-medium text-navy">{{ m.full_name }}</router-link>
               <span class="text-xs px-2 py-0.5 rounded-full bg-danger/5 text-danger">
-                {{ m.daysSince === null ? 'لم يتم' : `من ${m.daysSince} يوم` }}
+                {{ m.followupDays === null ? 'لم يتم' : `من ${m.followupDays} يوم` }}
               </span>
             </div>
             <p class="text-xs text-navy/60 mb-3" dir="ltr">{{ m.parent_phone }}</p>
@@ -122,6 +127,7 @@
             </button>
           </div>
         </div>
+      </template>
       </template>
 
       <!-- Pagination -->
@@ -141,6 +147,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/client'
+import { useCalculations } from '../composables/useCalculations'
 import { usePagination } from '../composables/usePagination'
 import { usePullToRefresh } from '../composables/usePullToRefresh'
 import SkeletonTable from '../components/SkeletonTable.vue'
@@ -148,6 +155,7 @@ import EmptyState from '../components/EmptyState.vue'
 import SearchFilter from '../components/SearchFilter.vue'
 import Pagination from '../components/Pagination.vue'
 import PullToRefreshIndicator from '../components/PullToRefreshIndicator.vue'
+import { FOLLOWUP_THRESHOLD_DAYS } from '../constants/app'
 
 const router = useRouter()
 const members = ref([])
@@ -170,7 +178,7 @@ const filterDefs = computed(() => [
     placeholder: 'كل المحتاجين',
     options: [
       { value: 'never', label: 'لم يتم التواصل' },
-      { value: 'late', label: 'عدّى 30 يوم' },
+      { value: 'late', label: `عدّى ${FOLLOWUP_THRESHOLD_DAYS} يوم` },
     ],
   },
   {
@@ -181,24 +189,8 @@ const filterDefs = computed(() => [
   },
 ])
 
-const needsFollowup = computed(() => {
-  const today = new Date()
-  const result = []
-  members.value.forEach((m) => {
-    const list = followupsMap.value[m.id] || []
-    let daysSince = null
-    if (list.length > 0) {
-      const sorted = [...list].sort((a, b) => new Date(b.date) - new Date(a.date))
-      daysSince = Math.floor((today - new Date(sorted[0].date)) / (1000 * 60 * 60 * 24))
-    }
-    if (list.length === 0 || daysSince > 30) result.push({ ...m, daysSince })
-  })
-  return result.sort((a, b) => {
-    if (a.daysSince === null && b.daysSince !== null) return -1
-    if (a.daysSince !== null && b.daysSince === null) return 1
-    return (b.daysSince || 0) - (a.daysSince || 0)
-  })
-})
+// Используем унифицированные вычисления
+const { needsFollowupList: needsFollowup } = useCalculations(members, { value: {} }, followupsMap)
 
 const filtered = computed(() => {
   const q = search.value.toLowerCase()

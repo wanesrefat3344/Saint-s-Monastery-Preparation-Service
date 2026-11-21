@@ -161,13 +161,13 @@
             label="نسبة الحضور"
             :value="attendanceRate === null ? '—' : `${attendanceRate}%`"
             :tone="attendanceRate === null ? 'muted' : attendanceRate >= 70 ? 'ok' : 'danger'"
-            :hint="`آخر ${RECENT} اجتماعات`"
+            :hint="`آخر ${ATTENDANCE_WINDOW_MEETINGS} اجتماعات`"
           />
           <Stat
             label="محتاجين افتقاد"
             :value="needsFollowupCount"
             :tone="needsFollowupCount ? 'gold' : 'muted'"
-            :hint="`ما اتفتقدوش من ${FOLLOWUP_DAYS} يوم`"
+            :hint="`ما اتفتقدوش من ${FOLLOWUP_THRESHOLD_DAYS_CALC} يوم`"
           />
           <Stat
             label="متوسط الخطر"
@@ -179,7 +179,7 @@
             label="غياب متتالي"
             :value="consecutiveAbsent.length"
             :tone="consecutiveAbsent.length ? 'danger' : 'muted'"
-            hint="3 مرات ورا بعض أو أكتر"
+            :hint="`${CONSECUTIVE_ABSENT_THRESHOLD_CALC} مرات ورا بعض أو أكتر`"
           />
         </section>
 
@@ -554,14 +554,13 @@
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, h } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api/client'
-import { calculateRiskScore } from '../utils/riskScore'
-import { calculateGroupScore } from '../utils/groupScore'
+import { useCalculations } from '../composables/useCalculations'
+import { calculateGroupScore as calculateGroupScoreUtil, getGroupChallengeDetails } from '../utils/groupScore'
+import {
+  ATTENDANCE_WINDOW_MEETINGS,
+  RISK_LEVELS,
+} from '../constants/app'
 import PageHeader from '../components/PageHeader.vue'
-
-const RECENT = 4 // عدد آخر الاجتماعات لحساب نسبة الحضور
-const STREAK_WINDOW = 8 // أقصى عدد اجتماعات للبحث عن غياب متتالي
-const FOLLOWUP_DAYS = 30 // بعد كام يوم بدون افتقاد يبقى محتاج افتقاد
-const DAY_MS = 24 * 60 * 60 * 1000
 
 /* ---------- Icons ---------- */
 const ICONS = {
@@ -673,104 +672,41 @@ function showSuccess(text) {
   successTimer = setTimeout(() => (successMessage.value = ''), 3000)
 }
 
+/* ---------- Унифицированные вычисления ---------- */
+const {
+  attendanceRate,
+  memberRows,
+  needsFollowupCount,
+  consecutiveAbsentList,
+  consecutiveAbsentCount,
+  calculateGroupScore: calcGroupScore,
+  getFollowupStatus,
+  getConsecutiveAbsent,
+  CONSECUTIVE_ABSENT_THRESHOLD: CONSECUTIVE_ABSENT_THRESHOLD_CALC,
+  FOLLOWUP_THRESHOLD_DAYS: FOLLOWUP_THRESHOLD_DAYS_CALC,
+} = useCalculations(members, attendanceData, followupsMap)
+
+// Alias для совместимости с шаблоном
+const consecutiveAbsent = consecutiveAbsentList
+
+// avgRisk computed from memberRows
+const avgRisk = computed(() => {
+  if (!memberRows.value.length) return 0
+  return Math.round(memberRows.value.reduce((s, r) => s + (r.riskScore || 0), 0) / memberRows.value.length)
+})
+
 /* ---------- Score ---------- */
 const scoreData = computed(() => {
   if (!group.value) return { total: 0, breakdown: [] }
-  return calculateGroupScore(
+  return calculateGroupScoreUtil(
     group.value,
     members.value,
-    attendanceData.value,
-    followupsMap.value,
     groupChallenges.value,
     challenges.value,
   )
 })
 
-/* ---------- الحضور (كل اجتماع = تاريخ + نوع، من غير ما نفقد أي اجتماع في نفس اليوم) ---------- */
-const sessionKeys = computed(() => Object.keys(attendanceData.value || {}).sort())
-const recentKeys = computed(() => sessionKeys.value.slice(-RECENT))
-
-function recordOf(key, memberId) {
-  const v = attendanceData.value[key]?.[memberId]
-  return v == null ? null : !!v // null = لم يُسجَّل
-}
-
-function memberRate(id) {
-  let total = 0
-  let present = 0
-  for (const k of recentKeys.value) {
-    const v = recordOf(k, id)
-    if (v === null) continue
-    total++
-    if (v) present++
-  }
-  return total ? Math.round((present / total) * 100) : null
-}
-
-// الغياب المتتالي الحالي (بنتخطى الاجتماعات اللي مفيهاش تسجيل للعضو)
-function memberStreak(id) {
-  const keys = sessionKeys.value.slice(-STREAK_WINDOW)
-  let n = 0
-  for (let i = keys.length - 1; i >= 0; i--) {
-    const v = recordOf(keys[i], id)
-    if (v === null) continue
-    if (v) break
-    n++
-  }
-  return n
-}
-
-function lastFollowupDays(id) {
-  const list = followupsMap.value[id] || []
-  let latest = 0
-  for (const f of list) {
-    const t = new Date(f.date).getTime()
-    if (Number.isFinite(t) && t > latest) latest = t
-  }
-  if (!latest) return null
-  return Math.max(0, Math.floor((Date.now() - latest) / DAY_MS))
-}
-
-const memberRows = computed(() => {
-  const rows = members.value.map((m) => {
-    const followupDays = lastFollowupDays(m.id)
-    return {
-      ...m,
-      rate: memberRate(m.id),
-      streak: memberStreak(m.id),
-      followupDays,
-      needsFollowup: followupDays === null || followupDays > FOLLOWUP_DAYS,
-      risk: Math.round(calculateRiskScore(m, followupsMap.value[m.id] || [], attendanceData.value).score || 0),
-    }
-  })
-  const byName = (a, b) => a.full_name.localeCompare(b.full_name, 'ar')
-  if (sortBy.value === 'risk') return rows.sort((a, b) => b.risk - a.risk || byName(a, b))
-  if (sortBy.value === 'attendance') return rows.sort((a, b) => (a.rate ?? 101) - (b.rate ?? 101) || byName(a, b))
-  return rows.sort(byName)
-})
-
-const attendanceRate = computed(() => {
-  let total = 0
-  let present = 0
-  for (const k of recentKeys.value) {
-    for (const m of members.value) {
-      const v = recordOf(k, m.id)
-      if (v === null) continue
-      total++
-      if (v) present++
-    }
-  }
-  return total ? Math.round((present / total) * 100) : null
-})
-
-const needsFollowupCount = computed(() => memberRows.value.filter((r) => r.needsFollowup).length)
-const consecutiveAbsent = computed(() => memberRows.value.filter((r) => r.streak >= 3))
-const avgRisk = computed(() => {
-  if (!memberRows.value.length) return 0
-  return Math.round(memberRows.value.reduce((s, r) => s + r.risk, 0) / memberRows.value.length)
-})
-
-/* ---------- Styling helpers ---------- */
+/* ---------- Styling helpers (using constants) ---------- */
 function scoreLevelClass(score) {
   if (score >= 80) return 'text-success'
   if (score >= 40) return 'text-gold'
@@ -789,8 +725,8 @@ function rateChip(rate) {
   return 'bg-danger/10 text-danger'
 }
 function riskText(score) {
-  if (score >= 50) return 'text-danger'
-  if (score >= 30) return 'text-gold'
+  if (score >= RISK_LEVELS.high.min) return 'text-danger'
+  if (score >= RISK_LEVELS.medium.min) return 'text-gold'
   return 'text-success'
 }
 

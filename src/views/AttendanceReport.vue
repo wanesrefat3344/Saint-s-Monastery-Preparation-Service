@@ -185,7 +185,7 @@
               📞 محتاجين افتقاد
               <span class="text-xs font-normal text-navy/50">({{ atRisk.length }})</span>
             </h2>
-            <p class="text-xs text-navy/50 mb-4">غابوا آخر اجتماعين مسجّلين أو أكتر ورا بعض</p>
+            <p class="text-xs text-navy/50 mb-4">غابوا آخر {{ CONSECUTIVE_ABSENT_THRESHOLD }} اجتماعين مسجّلين أو أكتر ورا بعض</p>
             <ul class="divide-y divide-border">
               <li v-for="m in atRisk" :key="m.id" class="flex items-center justify-between gap-3 py-2 text-sm">
                 <div class="min-w-0">
@@ -259,9 +259,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import api from '../api/client'
+import { useCalculations } from '../composables/useCalculations'
 import SkeletonTable from '../components/SkeletonTable.vue'
+import { TOP_N_RANKING, STREAK_WINDOW_MEETINGS, ATTENDANCE_WINDOW_MEETINGS } from '../constants/app'
 
-const TOP_N = 5
+const TOP_N = TOP_N_RANKING
 
 const members = ref([])
 const records = ref([]) // [{ member_id, date, type, present: boolean }]
@@ -278,6 +280,19 @@ const sortOptions = [
   { value: 'rate', label: 'الأقل حضوراً' },
 ]
 
+/* Преобразуем records в формат attendanceData для useCalculations (YYYY-MM-DD_type) */
+const attendanceData = computed(() => {
+  const map = {}
+  for (const r of records.value) {
+    const key = `${r.date}_${r.type}`
+    if (!map[key]) map[key] = {}
+    map[key][r.member_id] = r.present
+  }
+  return map
+})
+
+const followupsMap = ref({}) // Для AttendanceReport не нужен, но передаем пустой
+
 /* ---------- الاجتماعات (كل تاريخ + نوع اجتماع = عمود) ---------- */
 const meetingTypes = computed(() => [...new Set(records.value.map((r) => r.type).filter(Boolean))])
 
@@ -287,7 +302,7 @@ const sessions = computed(() => {
   const map = {}
   for (const r of records.value) {
     if (typeFilter.value !== 'all' && r.type !== typeFilter.value) continue
-    const key = `${r.date}|${r.type}`
+    const key = `${r.date}_${r.type}`
     if (!map[key]) map[key] = { key, date: r.date, type: r.type, byMember: {} }
     map[key].byMember[r.member_id] = r.present
   }
@@ -296,41 +311,34 @@ const sessions = computed(() => {
     .slice(-limit.value)
 })
 
-/* ---------- المخدومين (الحاليين بس) ---------- */
-const visibleMembers = computed(() =>
-  members.value.filter((m) => groupFilter.value === 'all' || m.group_name === groupFilter.value),
+/* Используем унифицированные вычисления для memberStats (на всех members, фильтруем потом) */
+const { memberRows: calculatedMemberRows, CONSECUTIVE_ABSENT_THRESHOLD } = useCalculations(
+  members,
+  attendanceData,
+  followupsMap,
+  {
+    attendanceWindowMeetings: ATTENDANCE_WINDOW_MEETINGS,
+    streakWindowMeetings: STREAK_WINDOW_MEETINGS,
+  }
 )
 
-const memberStats = computed(() =>
-  visibleMembers.value.map((m) => {
-    let attended = 0
-    let absent = 0
-    for (const s of sessions.value) {
-      const v = s.byMember[m.id]
-      if (v === undefined) continue
-      v ? attended++ : absent++
-    }
-    const total = attended + absent
+/* Фильтруем memberRows по группе */
+const filteredMemberRows = computed(() => {
+  if (groupFilter.value === 'all') return calculatedMemberRows.value
+  return calculatedMemberRows.value.filter(m => m.group_name === groupFilter.value)
+})
 
-    // الغياب المتتالي الحالي: من آخر اجتماع لورا، وبنتخطى الاجتماعات اللي مفيهاش تسجيل
-    let streak = 0
-    for (let i = sessions.value.length - 1; i >= 0; i--) {
-      const v = sessions.value[i].byMember[m.id]
-      if (v === undefined) continue
-      if (v) break
-      streak++
-    }
-
-    return {
-      ...m,
-      attended,
-      absent,
-      total,
-      streak,
-      rate: total ? Math.round((attended / total) * 100) : null,
-    }
-  }),
-)
+const memberStats = computed(() => {
+  // memberRows уже содержит все нужные поля: rate, consecutiveAbsent, needsFollowup, followupDays, riskScore, riskLevel
+  return filteredMemberRows.value.map(m => ({
+    ...m,
+    attended: Math.round((m.attendanceRate || 0) * (m.total || 1) / 100), // approximate
+    absent: (m.total || 0) - Math.round((m.attendanceRate || 0) * (m.total || 1) / 100),
+    total: m.total || 0,
+    streak: m.consecutiveAbsent,
+    rate: m.attendanceRate,
+  }))
+})
 
 const sortedMembers = computed(() => {
   const list = [...memberStats.value]
@@ -345,7 +353,7 @@ const sessionStats = computed(() =>
   sessions.value.map((s) => {
     let present = 0
     let absent = 0
-    for (const m of visibleMembers.value) {
+    for (const m of filteredMemberRows.value) {
       const v = s.byMember[m.id]
       if (v === undefined) continue
       v ? present++ : absent++
@@ -378,7 +386,7 @@ const worstSession = computed(() => {
 
 /* ---------- الغياب المتتالي ---------- */
 const atRisk = computed(() =>
-  memberStats.value.filter((m) => m.streak >= 2).sort((a, b) => b.streak - a.streak),
+  memberStats.value.filter((m) => m.streak >= CONSECUTIVE_ABSENT_THRESHOLD).sort((a, b) => b.streak - a.streak),
 )
 
 /* ---------- أعلى الملتزمين / أكثر الغايبين (مع التعادل وترتيب صحيح) ---------- */
@@ -415,7 +423,7 @@ const topAbsentees = computed(() => {
 const stats = computed(() => [
   {
     label: 'إجمالي المخدومين',
-    value: visibleMembers.value.length,
+    value: filteredMemberRows.value.length,
     sub: groupFilter.value === 'all' ? 'كل المجموعات' : groupFilter.value,
   },
   { label: 'عدد الاجتماعات', value: sessions.value.length, sub: 'في الفترة المحددة' },

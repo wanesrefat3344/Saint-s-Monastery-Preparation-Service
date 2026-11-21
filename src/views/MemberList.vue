@@ -120,8 +120,8 @@
                     </router-link>
                   </td>
                   <td class="px-3 py-3 text-center">
-                    <span class="text-[10px] px-2 py-0.5 rounded-full font-medium" :class="riskColorClass(getRisk(m))">
-                      {{ riskLabel(getRisk(m)) }}
+                    <span class="text-[10px] px-2 py-0.5 rounded-full font-medium" :class="riskColorClass(riskMap[m.id]?.level)">
+                      {{ riskLabel(riskMap[m.id]?.level) }}
                     </span>
                   </td>
                   <td class="px-3 py-3">
@@ -165,8 +165,8 @@
               <div class="flex-1 min-w-0">
                 <div class="flex items-start justify-between gap-2 mb-1">
                   <h3 class="font-semibold text-navy truncate">{{ m.full_name }}</h3>
-                  <span class="text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap" :class="riskColorClass(getRisk(m))">
-                    {{ riskLabel(getRisk(m)) }}
+                  <span class="text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap" :class="riskColorClass(riskMap[m.id]?.level)">
+                    {{ riskLabel(riskMap[m.id]?.level) }}
                   </span>
                 </div>
                 <p class="text-xs text-navy/60">{{ m.grade }}</p>
@@ -242,13 +242,14 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import * as XLSX from 'xlsx'
 import api from '../api/client'
-import { calculateRiskScore, riskColor } from '../utils/riskScore'
+import { useCalculations } from '../composables/useCalculations'
 import { usePagination } from '../composables/usePagination'
 import PageHeader from '../components/PageHeader.vue'
 import SkeletonTable from '../components/SkeletonTable.vue'
 import EmptyState from '../components/EmptyState.vue'
 import SearchFilter from '../components/SearchFilter.vue'
 import Pagination from '../components/Pagination.vue'
+import { RISK_LEVELS, GRADES, RELATIONS, AREAS } from '../constants/app'
 
 const router = useRouter()
 const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -266,14 +267,6 @@ const filterGender = ref('')
 const filterServant = ref('')
 const filterRisk = ref('')
 
-const grades = [
-  'الصف الأول الابتدائي', 'الصف الثاني الابتدائي', 'الصف الثالث الابتدائي',
-  'الصف الرابع الابتدائي', 'الصف الخامس الابتدائي', 'الصف السادس الابتدائي',
-  'الصف الأول الإعدادي', 'الصف الثاني الإعدادي', 'الصف الثالث الإعدادي',
-  'الصف الأول الثانوي', 'الصف الثاني الثانوي', 'الصف الثالث الثانوي',
-  'جامعي', 'خريج',
-]
-
 const pageSize = 10
 
 const filterDefs = computed(() => [
@@ -281,7 +274,7 @@ const filterDefs = computed(() => [
     key: 'grade',
     label: 'الصف',
     placeholder: 'كل الصفوف',
-    options: grades.map((g) => ({ value: g, label: g })),
+    options: GRADES.map((g) => ({ value: g, label: g })),
   },
   {
     key: 'gender',
@@ -300,6 +293,22 @@ const filterDefs = computed(() => [
   },
 ])
 
+/* Используем унифицированные вычисления для risk */
+const { memberRows: calculatedMemberRows, highRiskList, CONSECUTIVE_ABSENT_THRESHOLD, FOLLOWUP_THRESHOLD_DAYS } = useCalculations(
+  members,
+  attendanceData,
+  followupsMap
+)
+
+// Создаем мапу рисков для быстрого доступа в фильтрах
+const riskMap = computed(() => {
+  const map = {}
+  for (const m of calculatedMemberRows.value) {
+    map[m.id] = { level: m.riskLevel, score: m.riskScore }
+  }
+  return map
+})
+
 const filtered = computed(() => {
   const q = search.value.toLowerCase()
   return members.value.filter((m) => {
@@ -308,7 +317,8 @@ const filtered = computed(() => {
     if (filterGender.value && m.gender !== filterGender.value) return false
     if (filterServant.value && m.servant_id !== Number(filterServant.value)) return false
     if (filterRisk.value) {
-      const r = getRisk(m)
+      const r = riskMap.value[m.id]
+      if (!r) return false
       if (filterRisk.value === 'high' && r.level !== 'high') return false
       if (filterRisk.value === 'medium' && r.level !== 'medium') return false
     }
@@ -320,9 +330,7 @@ const { currentPage, totalPages, paginatedItems, nextPage, prevPage, goToPage, r
 
 watch([search, filterGrade, filterGender, filterServant, filterRisk], () => reset())
 
-const highRiskCount = computed(() =>
-  members.value.filter((m) => getRisk(m).level === 'high').length
-)
+const highRiskCount = computed(() => highRiskList.value.length)
 
 function updateFilter(key, value) {
   if (key === 'grade') filterGrade.value = value
@@ -330,17 +338,20 @@ function updateFilter(key, value) {
   else if (key === 'servant') filterServant.value = value
 }
 
+function riskColorClass(riskLevel) {
+  const level = RISK_LEVELS[riskLevel] || RISK_LEVELS.low
+  return level.bg + ' ' + level.text
+}
+
+function riskLabel(riskLevel) {
+  const level = RISK_LEVELS[riskLevel] || RISK_LEVELS.low
+  return `${level.icon} ${level.label}`
+}
+
 function getRisk(member) {
-  return calculateRiskScore(member, followupsMap.value[member.id] || [], attendanceData.value)
-}
-
-function riskColorClass(risk) {
-  return riskColor(risk.level).bg + ' ' + riskColor(risk.level).text
-}
-
-function riskLabel(risk) {
-  const c = riskColor(risk.level)
-  return `${c.icon} ${c.label}`
+  // Для обратной совместимости (если где-то вызывается)
+  const r = riskMap.value[member.id]
+  return r ? { level: r.level, score: r.score } : { level: 'low', score: 0 }
 }
 
 function clearFilters() {

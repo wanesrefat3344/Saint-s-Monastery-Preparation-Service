@@ -306,6 +306,8 @@ import { ref, computed, onMounted, h } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '../api/client'
 import ThemeToggle from '../composables/ThemeToggle.vue'
+import { useCalculations } from '../composables/useCalculations'
+import { MAX_DASHBOARD_ROWS, ROLE_LABELS } from '../constants/app'
 
 const ICONS = {
   plus: 'M12 5v14M5 12h14',
@@ -383,7 +385,6 @@ const tab = ref(null)
 const query = ref('')
 
 const RING_C = 2 * Math.PI * 42
-const MAX_ROWS = 5
 
 const todayLabel = new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })
 const greeting = (() => {
@@ -395,106 +396,42 @@ const greeting = (() => {
 
 const roleLabel = computed(() => {
   if (!user?.role) return 'مستخدم'
-  return {
-    admin: 'أدمن',
-    servant: 'خادم',
-    co_servant: 'خادم مساعد',
-    group_leader: 'ليدر مجموعة',
-    reader: 'مسجل قراءات',
-  }[user.role] || 'خادم'
+  return ROLE_LABELS[user.role] || 'خادم'
 })
 
-const needsFollowupList = computed(() => {
-  const today = new Date()
-  const result = []
-  members.value.forEach((m) => {
-    const list = followupsMap.value[m.id] || []
-    if (list.length === 0) { result.push({ ...m, daysSince: null }); return }
-    const sorted = [...list].sort((a, b) => new Date(b.date) - new Date(a.date))
-    const days = Math.floor((today - new Date(sorted[0].date)) / (1000 * 60 * 60 * 24))
-    if (days > 30) result.push({ ...m, daysSince: days })
-  })
-  return result
-})
-const needsFollowupCount = computed(() => needsFollowupList.value.length)
-
-const attendanceRate = computed(() => {
-  if (members.value.length === 0) return 0
-  const today = new Date()
-  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-  let total = 0, present = 0
-  Object.entries(attendanceData.value).forEach(([key, records]) => {
-    const date = new Date(key.split('_')[0])
-    if (date >= weekAgo && date <= today) {
-      Object.values(records).forEach((v) => { total++; if (v) present++ })
-    }
-  })
-  return total === 0 ? 0 : Math.round((present / total) * 100)
-})
-
-const consecutiveAbsent = computed(() => {
-  const dates = Object.keys(attendanceData.value).map((k) => k.split('_')[0])
-    .filter((v, i, a) => a.indexOf(v) === i).sort().reverse().slice(0, 5)
-  if (dates.length < 3) return []
-  const result = []
-  members.value.forEach((m) => {
-    let count = 0
-    for (const d of dates) {
-      const key = Object.keys(attendanceData.value).find((k) => k.startsWith(d))
-      if (!key) break
-      const records = attendanceData.value[key]
-      if (records[m.id] === false || records[m.id] === undefined) count++
-      else break
-    }
-    if (count >= 3) result.push({ ...m, absentCount: count })
-  })
-  return result.sort((a, b) => b.absentCount - a.absentCount)
-})
-
-const healthScore = computed(() => {
-  let score = 100
-  if (attendanceRate.value < 70) score -= (70 - attendanceRate.value) * 0.5
-  score -= consecutiveAbsent.value.length * 5
-  score -= needsFollowupCount.value * 1
-  return Math.max(0, Math.min(100, Math.round(score)))
-})
-
-const ringOffset = computed(() => RING_C * (1 - healthScore.value / 100))
-const healthLabel = computed(() => healthScore.value >= 80 ? 'ممتازة' : healthScore.value >= 60 ? 'جيدة' : healthScore.value >= 40 ? 'تحتاج متابعة' : 'في خطر')
-const healthMessage = computed(() => healthScore.value >= 80 ? 'الخدمة ماشية كويس!' : healthScore.value >= 60 ? 'فيه نقاط محتاجة متابعة' : 'فيه مشاكل محتاجة تدخل')
-const healthColor = computed(() =>
-  healthScore.value >= 80
-    ? { dot: 'bg-success' }
-    : healthScore.value >= 60
-      ? { dot: 'bg-gold' }
-      : { dot: 'bg-danger' }
-)
-
-const heroSentence = computed(() => {
-  const parts = []
-  if (consecutiveAbsent.value.length) parts.push(`${consecutiveAbsent.value.length} غايبين 3 مرات`)
-  if (needsFollowupCount.value) parts.push(`${needsFollowupCount.value} محتاجين افتقاد`)
-  return parts.length ? `${healthMessage.value} — ${parts.join(' و ')}.` : `${healthMessage.value} مفيش حد محتاج متابعة.`
-})
+// === Используем унифицированные вычисления ===
+const {
+  attendanceRate,
+  healthScore,
+  healthLabel,
+  healthColor,
+  needsFollowupList,
+  needsFollowupCount,
+  consecutiveAbsentList,
+  consecutiveAbsentCount,
+  memberRows,
+  CONSECUTIVE_ABSENT_THRESHOLD,
+  FOLLOWUP_THRESHOLD_DAYS,
+} = useCalculations(members, attendanceData, followupsMap)
 
 /* قايمة الانتباه */
-const alertCount = computed(() => consecutiveAbsent.value.length + needsFollowupCount.value)
+const alertCount = computed(() => consecutiveAbsentCount.value + needsFollowupCount.value)
 const activeTab = computed(() => {
   if (tab.value) return tab.value
-  return consecutiveAbsent.value.length ? 'absent' : 'followup'
+  return consecutiveAbsentCount.value ? 'absent' : 'followup'
 })
 const fullList = computed(() => {
-  if (activeTab.value === 'absent') return consecutiveAbsent.value
-  return [...needsFollowupList.value].sort((a, b) => (b.daysSince ?? Infinity) - (a.daysSince ?? Infinity))
+  if (activeTab.value === 'absent') return consecutiveAbsentList.value
+  return [...needsFollowupList.value].sort((a, b) => (b.followupDays ?? Infinity) - (a.followupDays ?? Infinity))
 })
-const visibleList = computed(() => fullList.value.slice(0, MAX_ROWS))
-const hiddenCount = computed(() => Math.max(0, fullList.value.length - MAX_ROWS))
+const visibleList = computed(() => fullList.value.slice(0, MAX_DASHBOARD_ROWS))
+const hiddenCount = computed(() => Math.max(0, fullList.value.length - MAX_DASHBOARD_ROWS))
 
 const nameOf = (m) => m.name || m.full_name || 'بدون اسم'
 const phoneOf = (m) => m.phone || m.mobile || ''
 const metaOf = (m) => {
-  if (activeTab.value === 'absent') return `غاب ${m.absentCount} مرات متتالية`
-  return m.daysSince === null ? 'لم يتم افتقاده من قبل' : `آخر افتقاد من ${m.daysSince} يوم`
+  if (activeTab.value === 'absent') return `غاب ${m.consecutiveAbsent} مرات متتالية`
+  return m.followupDays === null ? 'لم يتم افتقاده من قبل' : `آخر افتقاد من ${m.followupDays} يوم`
 }
 
 /* الأقسام */
