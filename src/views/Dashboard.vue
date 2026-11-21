@@ -39,7 +39,8 @@
         </button>
       </div>
 
-      <template v-else>
+      <!-- المحتوى -->
+      <div v-else>
 
         <!-- الهيرو -->
         <section class="relative overflow-hidden rounded-[28px] bg-brand text-white p-6 sm:p-9 mb-4 shadow-lg">
@@ -366,7 +367,7 @@
           </div>
         </section>
 
-      </template>
+      </div>
     </div>
 
     <!-- شريط التنقل السفلي (موبايل) -->
