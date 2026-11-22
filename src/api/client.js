@@ -1,7 +1,10 @@
 import axios from 'axios'
 
+// Use environment variable for API URL, fallback to production URL
+const baseURL = import.meta.env.VITE_API_URL || 'https://service-api.wanesrefat.workers.dev/api'
+
 const api = axios.create({
-  baseURL: 'https://service-api.wanesrefat.workers.dev/api',
+  baseURL,
   timeout: 20000,
 })
 

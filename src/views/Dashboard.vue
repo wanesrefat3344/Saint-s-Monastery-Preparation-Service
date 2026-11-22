@@ -366,7 +366,6 @@
             </div>
           </div>
         </section>
-
       </div>
     </div>
 
@@ -428,7 +427,7 @@ const ICONS = {
   trophy: 'M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2z',
   alert: 'M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01',
   logout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
-  settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z',
+  settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z',
 }
 
 const Icon = {
@@ -631,11 +630,47 @@ async function loadData() {
   loading.value = true
   error.value = false
   try {
+    // Check if user is logged in
+    const token = localStorage.getItem('token')
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+
+    if (!token) {
+      // No token - redirect to login
+      error.value = 'يجب تسجيل الدخول أولاً للوصول إلى لوحة التحكم'
+      router.push({ name: 'login' })
+      return
+    }
+
+    // Verify token is valid by checking me endpoint
+    try {
+      await api.get('/me')
+    } catch (e) {
+      // Invalid token - clear auth and redirect to login
+      localStorage.removeItem('token')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('user')
+      error.value = 'انتهت صلاحية الجلسة، برجاء تسجيل الدخول مجدداً'
+      router.push({ name: 'login' })
+      return
+    }
+
+    // Try to get dashboard stats first (new endpoint)
+    let dashboardStats = null
+    try {
+      const statsRes = await api.get('/dashboard/stats')
+      dashboardStats = statsRes.data
+    } catch (e) {
+      // Dashboard stats failed - fall back to old 3-call logic
+      console.log('Dashboard stats failed, falling back to legacy calls')
+    }
+
+    // Always load the three main data sources (required for dashboard UI)
     const [membersRes, followupsRes, attendanceRes] = await Promise.all([
       api.get('/members'),
       api.get('/followups'),
       api.get('/attendance'),
     ])
+
     members.value = membersRes.data
     const fmap = {}
     followupsRes.data.forEach((f) => {
@@ -650,13 +685,52 @@ async function loadData() {
       amap[key][a.member_id] = a.present
     })
     attendanceData.value = amap
+
+    // Update dashboard state from dashboard stats if available
+    if (dashboardStats) {
+      // Apply dashboard stats data if needed
+      if (dashboardStats.health) {
+        healthScore.value = dashboardStats.health.score
+        healthLabel.value = dashboardStats.health.label
+        healthColor.value = dashboardStats.health.color
+      }
+      if (dashboardStats.attendance !== undefined) {
+        attendanceRate.value = dashboardStats.attendance.rate
+      }
+      if (dashboardStats.consecutiveAbsent) {
+        consecutiveAbsentCount.value = dashboardStats.consecutiveAbsent.count
+      }
+      if (dashboardStats.needsFollowup !== undefined) {
+        needsFollowupCount.value = dashboardStats.needsFollowup.count
+      }
+    }
+
   } catch (e) {
     console.error(e)
-    error.value = true
+    // General error state - show retry option
+    error.value = 'حدث خطأ في تحميل البيانات، جرّب الضغط على إعادة المحاولة'
   } finally {
     loading.value = false
   }
 }
 
-onMounted(loadData)
+onMounted(async () => {
+  // Check auth status on mount
+  const token = localStorage.getItem('token')
+  if (!token) {
+    // No token - redirect to login, don't try to load data
+    router.push({ name: 'login' })
+    return
+  }
+  // Verify token is valid
+  try {
+    await api.get('/me')
+  } catch (e) {
+    localStorage.removeItem('token')
+    localStorage.removeItem('refreshToken')
+    localStorage.removeItem('user')
+    router.push({ name: 'login' })
+  }
+  await loadData()
+})
 </script>
