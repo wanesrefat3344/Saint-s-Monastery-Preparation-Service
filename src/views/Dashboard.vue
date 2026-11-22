@@ -641,18 +641,18 @@ async function loadData() {
       return
     }
 
-    // Verify token is valid by checking me endpoint
-    try {
-      await api.get('/me')
-    } catch (e) {
-      // Invalid token - clear auth and redirect to login
-      localStorage.removeItem('token')
-      localStorage.removeItem('refreshToken')
-      localStorage.removeItem('user')
-      error.value = 'انتهت صلاحية الجلسة، برجاء تسجيل الدخول مجدداً'
-      router.push({ name: 'login' })
-      return
-    }
+    // Verify token is valid by checking stored user data
+    // (Removed /api/me call - auth state now depends on stored token after login)
+    // TODO: re-enable /api/me later
+    // const { data } = await api.get('/me')
+    // if (!data?.user) {
+    //   localStorage.removeItem('token')
+    //   localStorage.removeItem('refreshToken')
+    //   localStorage.removeItem('user')
+    //   error.value = 'انتهت صلاحية الجلسة، برجاء تسجيل الدخول مجدداً'
+    //   router.push({ name: 'login' })
+    //   return
+    // }
 
     // Try to get dashboard stats first (new endpoint)
     let dashboardStats = null
@@ -722,15 +722,9 @@ onMounted(async () => {
     router.push({ name: 'login' })
     return
   }
-  // Verify token is valid
-  try {
-    await api.get('/me')
-  } catch (e) {
-    localStorage.removeItem('token')
-    localStorage.removeItem('refreshToken')
-    localStorage.removeItem('user')
-    router.push({ name: 'login' })
-  }
+  // Verify auth state from stored user data (no /api/me call)
+  // TODO: re-enable /api/me later
+
   await loadData()
 })
 </script>
