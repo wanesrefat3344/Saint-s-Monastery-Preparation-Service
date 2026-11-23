@@ -39,6 +39,18 @@
         </button>
       </div>
 
+      <!-- تعذر تحميل الإحصائيات -->
+      <div v-else-if="statsError" class="rounded-3xl border border-danger/30 bg-danger/5 p-10 text-center">
+        <div class="mx-auto mb-4 w-14 h-14 rounded-2xl bg-danger/10 text-danger flex items-center justify-center">
+          <Icon name="alert" class="w-7 h-7" />
+        </div>
+        <p class="text-navy font-bold mb-1">تعذر تحميل الإحصائيات</p>
+        <p class="text-sm text-navy/60 mb-5">لا يمكن تحميل بيانات الصحة والإحصائيات</p>
+        <button @click="loadData" class="rounded-xl bg-brand px-6 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40">
+          إعادة المحاولة
+        </button>
+      </div>
+
       <!-- المحتوى -->
       <div v-else>
 
@@ -506,6 +518,8 @@ const roleLabel = computed(() => {
   return ROLE_LABELS[user.role] || 'خادم'
 })
 
+const statsError = computed(() => dashboardStats === null && !loading)
+
 // === Используем унифицированные вычисления ===
 const {
   attendanceRate,
@@ -655,36 +669,51 @@ async function loadData() {
     // }
 
     // Try to get dashboard stats first (new endpoint)
+    // Use try/catch so failure doesn't break the page
     let dashboardStats = null
     try {
       const statsRes = await api.get('/dashboard/stats')
       dashboardStats = statsRes.data
     } catch (e) {
-      // Dashboard stats failed - fall back to old 3-call logic
-      console.log('Dashboard stats failed, falling back to legacy calls')
+      // Dashboard stats failed - use defaults (zeros) so page doesn't break
+      console.log('Dashboard stats failed, using defaults')
+      dashboardStats = {
+        health: { score: 100, label: 'جيد', color: 'success' },
+        attendance: { rate: 0, label: '0%', color: 'danger' },
+        consecutiveAbsent: { count: 0 },
+        needsFollowup: { count: 0 }
+      }
     }
 
     // Always load the three main data sources (required for dashboard UI)
-    const [membersRes, followupsRes, attendanceRes] = await Promise.all([
+    // Use Promise.allSettled so failure of one request doesn't stop the others
+    const results = await Promise.allSettled([
       api.get('/members'),
       api.get('/followups'),
       api.get('/attendance'),
     ])
 
-    members.value = membersRes.data
-    const fmap = {}
-    followupsRes.data.forEach((f) => {
-      if (!fmap[f.member_id]) fmap[f.member_id] = []
-      fmap[f.member_id].push(f)
-    })
-    followupsMap.value = fmap
-    const amap = {}
-    attendanceRes.data.forEach((a) => {
-      const key = `${a.date.slice(0, 10)}_${a.meeting_type}`
-      if (!amap[key]) amap[key] = {}
-      amap[key][a.member_id] = a.present
-    })
-    attendanceData.value = amap
+    // Handle each request independently - skip failed ones
+    if (results[0].status === 'fulfilled') {
+      members.value = results[0].value.data
+    }
+    if (results[1].status === 'fulfilled') {
+      const fmap = {}
+      results[1].value.data.forEach((f) => {
+        if (!fmap[f.member_id]) fmap[f.member_id] = []
+        fmap[f.member_id].push(f)
+      })
+      followupsMap.value = fmap
+    }
+    if (results[2].status === 'fulfilled') {
+      const amap = {}
+      results[2].value.data.forEach((a) => {
+        const key = `${a.date.slice(0, 10)}_${a.meeting_type}`
+        if (!amap[key]) amap[key] = {}
+        amap[key][a.member_id] = a.present
+      })
+      attendanceData.value = amap
+    }
 
     // Update dashboard state from dashboard stats if available
     if (dashboardStats) {
