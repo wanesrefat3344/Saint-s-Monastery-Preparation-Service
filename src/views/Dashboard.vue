@@ -128,13 +128,16 @@
 
             <!-- تبويبات -->
             <div v-if="alertCount" class="px-5 sm:px-6 mt-4">
-              <div class="inline-flex rounded-xl bg-page p-1 text-sm" role="tablist">
+              <div class="inline-flex rounded-xl bg-page p-1 text-sm" role="tablist" aria-label="أقسام الانتباه">
                 <button
                   role="tab"
                   :aria-selected="activeTab === 'absent'"
+                  :aria-controls="'tab-panel-absent'"
                   @click="tab = 'absent'"
                   class="rounded-lg px-4 py-1.5 font-medium transition-colors"
                   :class="activeTab === 'absent' ? 'bg-card text-navy shadow-sm' : 'text-navy/50 hover:text-navy'"
+                  @keydown.space.prevent
+                  @keydown.enter.prevent
                 >
                   غياب متتالي
                   <span class="ms-1 tabular-nums" :class="consecutiveAbsentCount ? 'text-danger' : ''">{{ consecutiveAbsentCount }}</span>
@@ -142,9 +145,12 @@
                 <button
                   role="tab"
                   :aria-selected="activeTab === 'followup'"
+                  :aria-controls="'tab-panel-followup'"
                   @click="tab = 'followup'"
                   class="rounded-lg px-4 py-1.5 font-medium transition-colors"
                   :class="activeTab === 'followup' ? 'bg-card text-navy shadow-sm' : 'text-navy/50 hover:text-navy'"
+                  @keydown.space.prevent
+                  @keydown.enter.prevent
                 >
                   محتاجين افتقاد
                   <span class="ms-1 tabular-nums" :class="needsFollowupCount ? 'text-gold' : ''">{{ needsFollowupCount }}</span>
@@ -224,101 +230,105 @@
         </section>
 
         <!-- أعياد ميلاد الشهر -->
-        <section class="mb-10">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-            <h2 class="text-lg font-bold text-navy flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-gold"></span>
-              أعياد ميلاد {{ currentMonthLabel }}
-              <span v-if="hasTodayBirthdays" class="text-xs bg-gold text-white px-2 py-0.5 rounded-full font-medium animate-pulse">
-                {{ todayBirthdaysCount }} النهاردة 🎂
+        <section class="mb-8">
+          <!-- الهيدر: الشهر + إجمالي العد -->
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-3 mb-4">
+            <div class="flex items-center gap-2">
+              <h2 class="text-lg font-bold text-navy flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-gold"></span>
+                أعياد ميلاد {{ currentMonthLabel }}
+              </h2>
+              <span v-if="birthdaysForMonth.length > 0"
+                class="inline-flex items-center gap-1 rounded bg-gold/20 text-gold text-xs font-medium px-2.5 py-0.5 whitespace-nowrap"
+              >
+                {{ birthdaysForMonth.length }} عيد هذا الشهر
               </span>
-            </h2>
-            <label class="relative block sm:w-48">
-              <span class="sr-only">اختر الشهر</span>
-              <Icon name="chevron" class="absolute top-1/2 -translate-y-1/2 start-3 w-4 h-4 text-navy/40 pointer-events-none rotate-90" />
+            </div>
+
+            <!-- شPicker الشهر: chips موبايل + select fallback -->
+            <div class="relative flex flex-col sm:flex-row gap-2">
+              <!-- أزرار Previous/Next الشهر -->
+              <button
+                v-if="selectedMonth.value > 1"
+                @click="selectedMonth.value = selectedMonth.value - 1"
+                class="shrink-0 rounded-lg bg-card p-1.5 hover:bg-gold/10 hover:text-gold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/40"
+                aria-label="الشهر السابق"
+              >
+                <Icon name="chevron" class="w-4 h-4" />
+              </button>
+
+              <div class="flex flex-wrap gap-1 z-10">
+                <template v-for="(month, i) in MONTHS_AR" :key="i">
+                  <button
+                    v-if="i >= selectedMonth.value - 3 && i <= selectedMonth.value + 2"
+                    @click="selectedMonth.value = i + 1"
+                    :class="[
+                      'inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+                      {
+                        'bg-gold/20 text-gold border-gold/50': selectedMonth.value === i + 1,
+                        'bg-navy/5 text-navy/50 border-navy/50': true,
+                      },
+                      'cursor-pointer'
+                    ]"
+                    title="{{ month }}"
+                  >
+                    {{ month }}
+                  </button>
+                </template>
+              </div>
+
               <select
                 v-model="selectedMonth"
-                class="w-full rounded-xl border border-border bg-card ps-10 pe-8 py-2.5 text-sm text-navy appearance-none focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand/50 transition cursor-pointer"
+                class="shrink-0 hidden sm:block rounded-xl border border-border bg-card ps-10 pe-8 py-2.5 text-sm text-navy appearance-none focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand/50 transition cursor-pointer"
+                aria-label="اختر الشهر"
               >
                 <option v-for="(month, i) in MONTHS_AR" :key="i" :value="i + 1">
                   {{ month }}
                 </option>
               </select>
-            </label>
+
+              <!-- زر Next month -->
+              <button
+                v-if="selectedMonth.value < MONTHS_AR.length"
+                @click="selectedMonth.value = selectedMonth.value + 1"
+                class="shrink-0 rounded-lg bg-card p-1.5 hover:bg-gold/10 hover:text-gold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/40"
+                aria-label="الشهر التالي"
+              >
+                <Icon name="chevron" class="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           <!-- Loading Skeleton -->
-          <div v-if="birthdaysLoading" class="space-y-2 animate-pulse motion-reduce:animate-none">
-            <Skeleton class="h-14 rounded-xl" v-for="n in 5" :key="n" />
-          </div>
+          {{ loading ? (
+            <div class="space-y-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 animate-pulse motion-reduce:animate-none">
+              <Skeleton class="h-16 rounded-xl" v-for="n in 5" :key="n" />
+            </div>
+          ) : null}}
 
           <!-- Empty State -->
-          <div v-else-if="!birthdaysForMonth.length" class="rounded-2xl border border-dashed border-border">
-            <EmptyState
-              icon="🎂"
-              :title="`مفيش أعياد ميلاد في ${currentMonthLabel}`"
-              description="لا يوجد مخدومين عيد ميلادهم في هذا الشهر"
-              tone="gold"
-            />
+          <div v-else-if="!birthdaysForMonth.length" class="rounded-2xl bg-card p-6 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-gold/10 text-gold flex items-center justify-center mx-auto mb-3">
+              <span class="text-3xl">🎂</span>
+            </div>
+            <h3 class="text-base font-semibold text-navy mb-2">مفيش أعياد ميلاد في {{ currentMonthLabel }}</h3>
+            <p class="text-navy/60 mb-4">لا يوجد مخدومين عيد ميلادهم في هذا الشهر</p>
+            <button
+              class="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+              aria-label="إعادة اختيار شهر"
+            >
+              <Icon name="refresh" class="w-4 h-4" />
+              اختيار شهر تاني
+            </button>
           </div>
 
-          <!-- Birthdays List -->
-          <div v-else class="space-y-2">
-            <div
+          <!-- Birthdays Grid -->
+          <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <BirthdayCard
               v-for="m in birthdaysForMonth"
               :key="m.id"
-              class="group relative flex items-center gap-3 rounded-2xl border border-border bg-card p-3 hover:border-brand/50 hover:shadow-md transition-all"
-              :class="{ 'ring-2 ring-gold/50 bg-gold/5': m.isToday }"
-            >
-              <!-- مؤشر "النهاردة" -->
-              <div v-if="m.isToday" class="absolute -top-2 -start-2 w-5 h-5 rounded-full bg-gold text-white text-[10px] font-bold flex items-center justify-center animate-bounce">
-                🎂
-              </div>
-
-              <!-- صورة/حرف أول -->
-              <div class="w-12 h-12 shrink-0 rounded-xl flex items-center justify-center text-sm font-bold" :class="m.isToday ? 'bg-gold/20 text-gold' : 'bg-brand/10 text-brand'">
-                {{ nameOf(m).charAt(0) }}
-              </div>
-
-              <!-- المعلومات -->
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <p class="text-sm font-semibold text-navy truncate">{{ nameOf(m) }}</p>
-                  <span v-if="m.isToday" class="text-xs bg-gold/10 text-gold px-2 py-0.5 rounded-full font-medium whitespace-nowrap animate-pulse">
-                    🎂 النهاردة!
-                  </span>
-                  <span v-else-if="m.isPast" class="text-xs bg-navy/10 text-navy/50 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
-                    فات ({{ m.formattedDate }})
-                  </span>
-                  <span v-else class="text-xs bg-brand/10 text-brand px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
-                    {{ m.formattedDate }}
-                  </span>
-                </div>
-                <p class="text-xs text-navy/50 mt-0.5 flex items-center gap-2 flex-wrap">
-                  <span>العمر: <strong>{{ m.turningAge }}</strong> سنة</span>
-                  <span v-if="m.group_name" class="bg-brand/10 text-brand px-1.5 py-0.5 rounded text-[10px]">{{ m.group_name }}</span>
-                  <span v-else class="text-navy/40 text-[10px]">بدون مجموعة</span>
-                </p>
-              </div>
-
-              <!-- أزرار الإجراءات -->
-              <div class="flex items-center gap-2 shrink-0">
-                <WhatsAppButton
-                  :phone="phoneOf(m)"
-                  :member-name="nameOf(m)"
-                  :parent-name="m.parent_name || ''"
-                />
-                <a
-                  v-if="phoneOf(m)"
-                  :href="`tel:${phoneOf(m)}`"
-                  class="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-brand/10 text-brand hover:bg-brand hover:text-white px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-                  :aria-label="`اتصال بـ ${nameOf(m)}`"
-                >
-                  <Icon name="phone" class="w-3.5 h-3.5" />
-                  اتصال
-                </a>
-              </div>
-            </div>
+              :m="m"
+            />
           </div>
         </section>
 
@@ -391,7 +401,7 @@
             {{ n.label }}
             <span
               v-if="n.badge"
-              class="absolute top-1.5 end-[calc(50%-22px)] min-w-[16px] text-center bg-danger text-white text-[9px] font-bold px-1 rounded-full"
+              class="absolute top-1.5 end-1.5 min-w-[16px] text-center bg-danger text-white text-[9px] font-bold px-1 rounded-full"
             >{{ n.badge }}</span>
           </router-link>
         </li>
@@ -401,7 +411,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, h } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '../api/client'
 import ThemeToggle from '../composables/ThemeToggle.vue'
@@ -410,6 +420,7 @@ import { MAX_DASHBOARD_ROWS, ROLE_LABELS } from '../constants/app'
 import WhatsAppButton from '../components/WhatsAppButton.vue'
 import EmptyState from '../components/EmptyState.vue'
 import Skeleton from '../components/Skeleton.vue'
+import BirthdayCard from '../components/BirthdayCard.vue'
 import { getBirthdaysForMonth, MONTHS_AR, getCurrentMonth, filterMembersByPermission, countTodayBirthdays } from '../utils/birthdays'
 
 const ICONS = {
@@ -552,6 +563,7 @@ const metaOf = (m) => {
   return m.followupDays === null ? 'لم يتم افتقاده من قبل' : `آخر افتقاد من ${m.followupDays} يوم`
 }
 
+
 /* الأقسام */
 const shortcuts = computed(() => {
   const list = [
@@ -577,7 +589,7 @@ const linkGroups = computed(() => {
         { to: '/servant-attendance', label: 'حضور الخدام', desc: 'تسجيل حضور الخدام', icon: 'check' },
         { to: '/servants-activity', label: 'نشاط الخدام', desc: 'تقرير شامل', icon: 'chart' },
       ],
-    },
+    }
   ]
   if (isAdmin) {
     groups.push({
@@ -588,7 +600,7 @@ const linkGroups = computed(() => {
         { to: '/challenges-approval', label: 'موافقات التحديات', desc: 'طلبات الاشتراك', icon: 'trophy' },
         { to: '/audit-log', label: 'سجل النشاط', desc: 'كل العمليات', icon: 'list' },
         { to: '/settings', label: 'الإعدادات', desc: 'النسخ الاحتياطي والبيانات', icon: 'settings' },
-      ],
+      ]
     })
   }
   return groups
