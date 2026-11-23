@@ -39,18 +39,6 @@
         </button>
       </div>
 
-      <!-- تعذر تحميل الإحصائيات -->
-      <div v-else-if="statsError" class="rounded-3xl border border-danger/30 bg-danger/5 p-10 text-center">
-        <div class="mx-auto mb-4 w-14 h-14 rounded-2xl bg-danger/10 text-danger flex items-center justify-center">
-          <Icon name="alert" class="w-7 h-7" />
-        </div>
-        <p class="text-navy font-bold mb-1">تعذر تحميل الإحصائيات</p>
-        <p class="text-sm text-navy/60 mb-5">لا يمكن تحميل بيانات الصحة والإحصائيات</p>
-        <button @click="loadData" class="rounded-xl bg-brand px-6 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40">
-          إعادة المحاولة
-        </button>
-      </div>
-
       <!-- المحتوى -->
       <div v-else>
 
@@ -65,7 +53,7 @@
               <div class="flex items-center gap-2 mb-4">
                 <span class="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">{{ roleLabel }}</span>
                 <span class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
-                  <span class="w-1.5 h-1.5 rounded-full" :class="healthColor.dot"></span>
+                  <span class="w-1.5 h-1.5 rounded-full" :class="healthColor?.dot"></span>
                   الخدمة {{ healthLabel }}
                 </span>
               </div>
@@ -117,7 +105,7 @@
         <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
           <Stat label="إجمالي المخدومين" :value="members.length" icon="users" />
           <Stat label="حضور الأسبوع" :value="`${attendanceRate}%`" icon="chart" :tone="attendanceRate >= 70 ? 'ok' : 'danger'" :progress="attendanceRate" />
-          <Stat label="غايبين 3 مرات" :value="consecutiveAbsent.length" icon="alert" :tone="consecutiveAbsent.length ? 'danger' : 'muted'" />
+          <Stat label="غايبين 3 مرات" :value="consecutiveAbsentCount" icon="alert" :tone="consecutiveAbsentCount ? 'danger' : 'muted'" />
           <Stat label="محتاجين افتقاد" :value="needsFollowupCount" icon="phone" :tone="needsFollowupCount ? 'gold' : 'muted'" />
         </section>
 
@@ -149,7 +137,7 @@
                   :class="activeTab === 'absent' ? 'bg-card text-navy shadow-sm' : 'text-navy/50 hover:text-navy'"
                 >
                   غياب متتالي
-                  <span class="ms-1 tabular-nums" :class="consecutiveAbsent.length ? 'text-danger' : ''">{{ consecutiveAbsent.length }}</span>
+                  <span class="ms-1 tabular-nums" :class="consecutiveAbsentCount ? 'text-danger' : ''">{{ consecutiveAbsentCount }}</span>
                 </button>
                 <button
                   role="tab"
@@ -268,7 +256,7 @@
           <div v-else-if="!birthdaysForMonth.length" class="rounded-2xl border border-dashed border-border">
             <EmptyState
               icon="🎂"
-              title="مفيش أعياد ميلاد في {{ currentMonthLabel }}"
+              :title="`مفيش أعياد ميلاد في ${currentMonthLabel}`"
               description="لا يوجد مخدومين عيد ميلادهم في هذا الشهر"
               tone="gold"
             />
@@ -494,7 +482,7 @@ const isAdmin = user.role === 'admin'
 const members = ref([])
 const followupsMap = ref({})
 const attendanceData = ref({})
-const loading = ref(false)
+const loading = ref(true)
 const error = ref(false)
 const tab = ref(null)
 const query = ref('')
@@ -518,9 +506,7 @@ const roleLabel = computed(() => {
   return ROLE_LABELS[user.role] || 'خادم'
 })
 
-const statsError = computed(() => dashboardStats === null && !loading)
-
-// === Используем унифицированные вычисления ===
+// === الحسابات (كلها محسوبة من members / attendance / followups، من غير /dashboard/stats) ===
 const {
   attendanceRate,
   healthScore,
@@ -530,10 +516,21 @@ const {
   needsFollowupCount,
   consecutiveAbsentList,
   consecutiveAbsentCount,
-  memberRows,
-  CONSECUTIVE_ABSENT_THRESHOLD,
-  FOLLOWUP_THRESHOLD_DAYS,
 } = useCalculations(members, attendanceData, followupsMap)
+
+// دايرة الصحة
+const ringOffset = computed(() => {
+  const score = Math.max(0, Math.min(100, Number(healthScore?.value ?? healthScore) || 0))
+  return RING_C * (1 - score / 100)
+})
+
+// جملة الهيرو
+const heroSentence = computed(() => {
+  if (!members.value.length) return 'ابدأ بتسجيل أول مخدوم في الخدمة.'
+  if (consecutiveAbsentCount.value > 0) return `فيه ${consecutiveAbsentCount.value} محتاجين اتصال عشان غابوا كتير.`
+  if (needsFollowupCount.value > 0) return `فيه ${needsFollowupCount.value} محتاجين افتقاد.`
+  return 'كل حاجة ماشية تمام. ربنا يبارك خدمتك.'
+})
 
 /* قايمة الانتباه */
 const alertCount = computed(() => consecutiveAbsentCount.value + needsFollowupCount.value)
@@ -615,23 +612,11 @@ const bottomNav = computed(() => [
 const isActive = (to) => (to === '/' ? route.path === '/' : route.path.startsWith(to))
 
 // === أعياد الميلاد ===
-// فلترة الأعضاء حسب صلاحيات المستخدم
 const permittedMembers = computed(() => filterMembersByPermission(members.value, user))
 
-// أعياد الميلاد للشهر المحدد
-const birthdaysForMonth = computed(() => {
-  return getBirthdaysForMonth(permittedMembers.value, selectedMonth.value)
-})
-
-// عدد أعياد الميلاد اليوم
-const todayBirthdaysCount = computed(() => {
-  return countTodayBirthdays(permittedMembers.value)
-})
-
-// الشهر الحالي
+const birthdaysForMonth = computed(() => getBirthdaysForMonth(permittedMembers.value, selectedMonth.value))
+const todayBirthdaysCount = computed(() => countTodayBirthdays(permittedMembers.value))
 const currentMonthLabel = computed(() => MONTHS_AR[selectedMonth.value - 1])
-
-// هل في أعياد ميلاد النهاردة؟
 const hasTodayBirthdays = computed(() => todayBirthdaysCount.value > 0)
 
 function logout() {
@@ -640,120 +625,63 @@ function logout() {
   router.push({ name: 'login' })
 }
 
+// يحوّل أي شكل رد (مصفوفة مباشرة أو { data: [...] }) لمصفوفة
+const toArray = (d) => (Array.isArray(d) ? d : Array.isArray(d?.data) ? d.data : [])
+
 async function loadData() {
   loading.value = true
   error.value = false
   try {
-    // Check if user is logged in
     const token = localStorage.getItem('token')
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-
     if (!token) {
-      // No token - redirect to login
-      error.value = 'يجب تسجيل الدخول أولاً للوصول إلى لوحة التحكم'
       router.push({ name: 'login' })
       return
     }
 
-    // Verify token is valid by checking stored user data
-    // (Removed /api/me call - auth state now depends on stored token after login)
     // TODO: re-enable /api/me later
-    // const { data } = await api.get('/me')
-    // if (!data?.user) {
-    //   localStorage.removeItem('token')
-    //   localStorage.removeItem('refreshToken')
-    //   localStorage.removeItem('user')
-    //   error.value = 'انتهت صلاحية الجلسة، برجاء تسجيل الدخول مجدداً'
-    //   router.push({ name: 'login' })
-    //   return
-    // }
+    // TODO: re-enable /dashboard/stats later (الأرقام دلوقتي بتتحسب من members/attendance/followups)
 
-    // Try to get dashboard stats first (new endpoint)
-    // Use try/catch so failure doesn't break the page
-    let dashboardStats = null
-    try {
-      const statsRes = await api.get('/dashboard/stats')
-      dashboardStats = statsRes.data
-    } catch (e) {
-      // Dashboard stats failed - use defaults (zeros) so page doesn't break
-      console.log('Dashboard stats failed, using defaults')
-      dashboardStats = {
-        health: { score: 100, label: 'جيد', color: 'success' },
-        attendance: { rate: 0, label: '0%', color: 'danger' },
-        consecutiveAbsent: { count: 0 },
-        needsFollowup: { count: 0 }
-      }
-    }
-
-    // Always load the three main data sources (required for dashboard UI)
-    // Use Promise.allSettled so failure of one request doesn't stop the others
+    // فشل طلب واحد مايوقفش الباقي
     const results = await Promise.allSettled([
       api.get('/members'),
       api.get('/followups'),
       api.get('/attendance'),
     ])
 
-    // Handle each request independently - skip failed ones
     if (results[0].status === 'fulfilled') {
-      members.value = results[0].value.data
+      members.value = toArray(results[0].value.data)
     }
+
     if (results[1].status === 'fulfilled') {
       const fmap = {}
-      results[1].value.data.forEach((f) => {
+      toArray(results[1].value.data).forEach((f) => {
         if (!fmap[f.member_id]) fmap[f.member_id] = []
         fmap[f.member_id].push(f)
       })
       followupsMap.value = fmap
     }
+
     if (results[2].status === 'fulfilled') {
       const amap = {}
-      results[2].value.data.forEach((a) => {
-        const key = `${a.date.slice(0, 10)}_${a.meeting_type}`
+      toArray(results[2].value.data).forEach((a) => {
+        const key = `${String(a.date).slice(0, 10)}_${a.meeting_type}`
         if (!amap[key]) amap[key] = {}
         amap[key][a.member_id] = a.present
       })
       attendanceData.value = amap
     }
 
-    // Update dashboard state from dashboard stats if available
-    if (dashboardStats) {
-      // Apply dashboard stats data if needed
-      if (dashboardStats.health) {
-        healthScore.value = dashboardStats.health.score
-        healthLabel.value = dashboardStats.health.label
-        healthColor.value = dashboardStats.health.color
-      }
-      if (dashboardStats.attendance !== undefined) {
-        attendanceRate.value = dashboardStats.attendance.rate
-      }
-      if (dashboardStats.consecutiveAbsent) {
-        consecutiveAbsentCount.value = dashboardStats.consecutiveAbsent.count
-      }
-      if (dashboardStats.needsFollowup !== undefined) {
-        needsFollowupCount.value = dashboardStats.needsFollowup.count
-      }
+    // لو الثلاثة فشلوا فعلاً، اعرض شاشة الخطأ
+    if (results.every((r) => r.status === 'rejected')) {
+      error.value = true
     }
-
   } catch (e) {
     console.error(e)
-    // General error state - show retry option
-    error.value = 'حدث خطأ في تحميل البيانات، جرّب الضغط على إعادة المحاولة'
+    error.value = true
   } finally {
     loading.value = false
   }
 }
 
-onMounted(async () => {
-  // Check auth status on mount
-  const token = localStorage.getItem('token')
-  if (!token) {
-    // No token - redirect to login, don't try to load data
-    router.push({ name: 'login' })
-    return
-  }
-  // Verify auth state from stored user data (no /api/me call)
-  // TODO: re-enable /api/me later
-
-  await loadData()
-})
+onMounted(loadData)
 </script>
