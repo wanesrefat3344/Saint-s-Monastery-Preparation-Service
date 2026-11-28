@@ -46,7 +46,7 @@
       <WhatsAppButton
         :phone="phoneOf(m)"
         :member-name="nameOf(m)"
-        :parent-name="m.parent_name || ''
+       :parent-name="m.parent_name || ''"
         />
     </div>
 

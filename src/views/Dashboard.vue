@@ -42,9 +42,20 @@
       <!-- المحتوى -->
       <div v-else>
 
+        <!-- تنبيه: جزء من الطلبات فشل -->
+        <div
+          v-if="failedRequests.length"
+          class="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-danger/30 bg-danger/5 px-4 py-3 text-sm"
+          role="alert"
+        >
+          <span class="text-navy">
+            تعذّر تحميل: {{ failedRequests.join('، ') }}. بعض الأرقام ممكن تكون ناقصة.
+          </span>
+          <button @click="loadData" class="shrink-0 font-semibold text-brand hover:underline">إعادة المحاولة</button>
+        </div>
+
         <!-- الهيرو -->
         <section class="relative overflow-hidden rounded-[28px] bg-brand text-white p-6 sm:p-9 mb-4 shadow-lg">
-          <!-- زخرفة -->
           <div class="pointer-events-none absolute -top-24 -start-16 w-72 h-72 rounded-full bg-white/[0.07]"></div>
           <div class="pointer-events-none absolute -bottom-32 end-1/3 w-80 h-80 rounded-full bg-white/[0.05]"></div>
 
@@ -104,7 +115,7 @@
         <!-- الإحصائيات -->
         <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
           <Stat label="إجمالي المخدومين" :value="members.length" icon="users" />
-          <Stat label="حضور الأسبوع" :value="`${attendanceRate}%`" icon="chart" :tone="attendanceRate >= 70 ? 'ok' : 'danger'" :progress="attendanceRate" />
+          <Stat label="حضور الأسبوع" :value="`${attendanceRate}%`" icon="chart" :tone="attendanceRate >= 70 ? 'ok' : 'danger'" :progress="Number(attendanceRate) || 0" />
           <Stat label="غايبين 3 مرات" :value="consecutiveAbsentCount" icon="alert" :tone="consecutiveAbsentCount ? 'danger' : 'muted'" />
           <Stat label="محتاجين افتقاد" :value="needsFollowupCount" icon="phone" :tone="needsFollowupCount ? 'gold' : 'muted'" />
         </section>
@@ -132,12 +143,9 @@
                 <button
                   role="tab"
                   :aria-selected="activeTab === 'absent'"
-                  :aria-controls="'tab-panel-absent'"
                   @click="tab = 'absent'"
                   class="rounded-lg px-4 py-1.5 font-medium transition-colors"
                   :class="activeTab === 'absent' ? 'bg-card text-navy shadow-sm' : 'text-navy/50 hover:text-navy'"
-                  @keydown.space.prevent
-                  @keydown.enter.prevent
                 >
                   غياب متتالي
                   <span class="ms-1 tabular-nums" :class="consecutiveAbsentCount ? 'text-danger' : ''">{{ consecutiveAbsentCount }}</span>
@@ -145,12 +153,9 @@
                 <button
                   role="tab"
                   :aria-selected="activeTab === 'followup'"
-                  :aria-controls="'tab-panel-followup'"
                   @click="tab = 'followup'"
                   class="rounded-lg px-4 py-1.5 font-medium transition-colors"
                   :class="activeTab === 'followup' ? 'bg-card text-navy shadow-sm' : 'text-navy/50 hover:text-navy'"
-                  @keydown.space.prevent
-                  @keydown.enter.prevent
                 >
                   محتاجين افتقاد
                   <span class="ms-1 tabular-nums" :class="needsFollowupCount ? 'text-gold' : ''">{{ needsFollowupCount }}</span>
@@ -231,46 +236,41 @@
 
         <!-- أعياد ميلاد الشهر -->
         <section class="mb-8">
-          <!-- الهيدر: الشهر + إجمالي العد -->
           <div class="flex flex-col sm:flex-row items-center justify-between gap-3 mb-4">
             <div class="flex items-center gap-2">
               <h2 class="text-lg font-bold text-navy flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-gold"></span>
                 أعياد ميلاد {{ currentMonthLabel }}
               </h2>
-              <span v-if="birthdaysForMonth.length > 0"
+              <span
+                v-if="birthdaysForMonth.length > 0"
                 class="inline-flex items-center gap-1 rounded bg-gold/20 text-gold text-xs font-medium px-2.5 py-0.5 whitespace-nowrap"
               >
                 {{ birthdaysForMonth.length }} عيد هذا الشهر
               </span>
             </div>
 
-            <!-- شPicker الشهر: chips موبايل + select fallback -->
-            <div class="relative flex flex-col sm:flex-row gap-2">
-              <!-- أزرار Previous/Next الشهر -->
+            <!-- اختيار الشهر -->
+            <div class="relative flex flex-col sm:flex-row items-center gap-2">
               <button
-                v-if="selectedMonth.value > 1"
-                @click="selectedMonth.value = selectedMonth.value - 1"
+                v-if="selectedMonth > 1"
+                @click="selectedMonth = selectedMonth - 1"
                 class="shrink-0 rounded-lg bg-card p-1.5 hover:bg-gold/10 hover:text-gold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/40"
                 aria-label="الشهر السابق"
               >
-                <Icon name="chevron" class="w-4 h-4" />
+                <Icon name="chevron" class="w-4 h-4 rotate-180" />
               </button>
 
               <div class="flex flex-wrap gap-1 z-10">
                 <template v-for="(month, i) in MONTHS_AR" :key="i">
                   <button
-                    v-if="i >= selectedMonth.value - 3 && i <= selectedMonth.value + 2"
-                    @click="selectedMonth.value = i + 1"
-                    :class="[
-                      'inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
-                      {
-                        'bg-gold/20 text-gold border-gold/50': selectedMonth.value === i + 1,
-                        'bg-navy/5 text-navy/50 border-navy/50': true,
-                      },
-                      'cursor-pointer'
-                    ]"
-                    title="{{ month }}"
+                    v-if="i >= selectedMonth - 3 && i <= selectedMonth + 1"
+                    @click="selectedMonth = i + 1"
+                    class="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer"
+                    :class="selectedMonth === i + 1
+                      ? 'bg-gold/20 text-gold border-gold/50'
+                      : 'bg-navy/5 text-navy/50 border-transparent hover:text-navy'"
+                    :title="month"
                   >
                     {{ month }}
                   </button>
@@ -279,7 +279,7 @@
 
               <select
                 v-model="selectedMonth"
-                class="shrink-0 hidden sm:block rounded-xl border border-border bg-card ps-10 pe-8 py-2.5 text-sm text-navy appearance-none focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand/50 transition cursor-pointer"
+                class="shrink-0 hidden sm:block rounded-xl border border-border bg-card ps-4 pe-8 py-2.5 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand/50 transition cursor-pointer"
                 aria-label="اختر الشهر"
               >
                 <option v-for="(month, i) in MONTHS_AR" :key="i" :value="i + 1">
@@ -287,10 +287,9 @@
                 </option>
               </select>
 
-              <!-- زر Next month -->
               <button
-                v-if="selectedMonth.value < MONTHS_AR.length"
-                @click="selectedMonth.value = selectedMonth.value + 1"
+                v-if="selectedMonth < MONTHS_AR.length"
+                @click="selectedMonth = selectedMonth + 1"
                 class="shrink-0 rounded-lg bg-card p-1.5 hover:bg-gold/10 hover:text-gold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/40"
                 aria-label="الشهر التالي"
               >
@@ -300,11 +299,12 @@
           </div>
 
           <!-- Loading Skeleton -->
-          {{ loading ? (
-            <div class="space-y-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 animate-pulse motion-reduce:animate-none">
-              <Skeleton class="h-16 rounded-xl" v-for="n in 5" :key="n" />
-            </div>
-          ) : null}}
+          <div
+            v-if="birthdaysLoading"
+            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 animate-pulse motion-reduce:animate-none"
+          >
+            <Skeleton v-for="n in 5" :key="n" class="h-16 rounded-xl" />
+          </div>
 
           <!-- Empty State -->
           <div v-else-if="!birthdaysForMonth.length" class="rounded-2xl bg-card p-6 text-center">
@@ -312,13 +312,14 @@
               <span class="text-3xl">🎂</span>
             </div>
             <h3 class="text-base font-semibold text-navy mb-2">مفيش أعياد ميلاد في {{ currentMonthLabel }}</h3>
-            <p class="text-navy/60 mb-4">لا يوجد مخدومين عيد ميلادهم في هذا الشهر</p>
+            <p class="text-navy/60 mb-4">مفيش مخدومين عيد ميلادهم في الشهر ده.</p>
             <button
+              v-if="selectedMonth !== getCurrentMonth()"
+              @click="selectedMonth = getCurrentMonth()"
               class="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-              aria-label="إعادة اختيار شهر"
             >
               <Icon name="refresh" class="w-4 h-4" />
-              اختيار شهر تاني
+              الرجوع للشهر الحالي
             </button>
           </div>
 
@@ -411,17 +412,20 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, h } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '../api/client'
 import ThemeToggle from '../composables/ThemeToggle.vue'
 import { useCalculations } from '../composables/useCalculations'
 import { MAX_DASHBOARD_ROWS, ROLE_LABELS } from '../constants/app'
-import WhatsAppButton from '../components/WhatsAppButton.vue'
-import EmptyState from '../components/EmptyState.vue'
 import Skeleton from '../components/Skeleton.vue'
 import BirthdayCard from '../components/BirthdayCard.vue'
-import { getBirthdaysForMonth, MONTHS_AR, getCurrentMonth, filterMembersByPermission, countTodayBirthdays } from '../utils/birthdays'
+import {
+  getBirthdaysForMonth,
+  MONTHS_AR,
+  getCurrentMonth,
+  filterMembersByPermission,
+} from '../utils/birthdays'
 
 const ICONS = {
   plus: 'M12 5v14M5 12h14',
@@ -438,6 +442,7 @@ const ICONS = {
   trophy: 'M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2z',
   alert: 'M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01',
   logout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
+  refresh: 'M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15',
   settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z',
 }
 
@@ -445,15 +450,19 @@ const Icon = {
   props: { name: String },
   setup(props) {
     return () =>
-      h('svg', {
-        viewBox: '0 0 24 24',
-        fill: 'none',
-        stroke: 'currentColor',
-        'stroke-width': 1.8,
-        'stroke-linecap': 'round',
-        'stroke-linejoin': 'round',
-        'aria-hidden': 'true',
-      }, [h('path', { d: ICONS[props.name] || '' })])
+      h(
+        'svg',
+        {
+          viewBox: '0 0 24 24',
+          fill: 'none',
+          stroke: 'currentColor',
+          'stroke-width': 1.8,
+          'stroke-linecap': 'round',
+          'stroke-linejoin': 'round',
+          'aria-hidden': 'true',
+        },
+        [h('path', { d: ICONS[props.name] || '' })]
+      )
   },
 }
 
@@ -473,12 +482,25 @@ const Stat = {
       h('div', { class: 'rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-sm' }, [
         h('div', { class: 'flex items-center justify-between gap-2 mb-3' }, [
           h('p', { class: 'text-xs text-navy/55' }, props.label),
-          props.icon ? h('span', { class: ['w-8 h-8 rounded-lg flex items-center justify-center', soft[props.tone] || soft.default] }, [h(Icon, { name: props.icon, class: 'w-4 h-4' })]) : null,
+          props.icon
+            ? h(
+                'span',
+                { class: ['w-8 h-8 rounded-lg flex items-center justify-center', soft[props.tone] || soft.default] },
+                [h(Icon, { name: props.icon, class: 'w-4 h-4' })]
+              )
+            : null,
         ]),
-        h('p', { class: ['text-3xl font-extrabold tabular-nums leading-none', text[props.tone] || text.default] }, String(props.value)),
+        h(
+          'p',
+          { class: ['text-3xl font-extrabold tabular-nums leading-none', text[props.tone] || text.default] },
+          String(props.value)
+        ),
         props.progress !== null
           ? h('div', { class: 'mt-3 h-1.5 rounded-full bg-navy/5 overflow-hidden' }, [
-              h('div', { class: ['h-full rounded-full', bar[props.tone] || bar.default], style: { width: `${Math.min(100, props.progress)}%` } }),
+              h('div', {
+                class: ['h-full rounded-full', bar[props.tone] || bar.default],
+                style: { width: `${Math.min(100, props.progress)}%` },
+              }),
             ])
           : null,
       ])
@@ -495,6 +517,7 @@ const followupsMap = ref({})
 const attendanceData = ref({})
 const loading = ref(true)
 const error = ref(false)
+const failedRequests = ref([])
 const tab = ref(null)
 const query = ref('')
 
@@ -517,7 +540,7 @@ const roleLabel = computed(() => {
   return ROLE_LABELS[user.role] || 'خادم'
 })
 
-// === الحسابات (كلها محسوبة من members / attendance / followups، من غير /dashboard/stats) ===
+// الحسابات كلها محسوبة من members / attendance / followups
 const {
   attendanceRate,
   healthScore,
@@ -563,7 +586,6 @@ const metaOf = (m) => {
   return m.followupDays === null ? 'لم يتم افتقاده من قبل' : `آخر افتقاد من ${m.followupDays} يوم`
 }
 
-
 /* الأقسام */
 const shortcuts = computed(() => {
   const list = [
@@ -589,7 +611,7 @@ const linkGroups = computed(() => {
         { to: '/servant-attendance', label: 'حضور الخدام', desc: 'تسجيل حضور الخدام', icon: 'check' },
         { to: '/servants-activity', label: 'نشاط الخدام', desc: 'تقرير شامل', icon: 'chart' },
       ],
-    }
+    },
   ]
   if (isAdmin) {
     groups.push({
@@ -600,7 +622,7 @@ const linkGroups = computed(() => {
         { to: '/challenges-approval', label: 'موافقات التحديات', desc: 'طلبات الاشتراك', icon: 'trophy' },
         { to: '/audit-log', label: 'سجل النشاط', desc: 'كل العمليات', icon: 'list' },
         { to: '/settings', label: 'الإعدادات', desc: 'النسخ الاحتياطي والبيانات', icon: 'settings' },
-      ]
+      ],
     })
   }
   return groups
@@ -625,11 +647,8 @@ const isActive = (to) => (to === '/' ? route.path === '/' : route.path.startsWit
 
 // === أعياد الميلاد ===
 const permittedMembers = computed(() => filterMembersByPermission(members.value, user))
-
 const birthdaysForMonth = computed(() => getBirthdaysForMonth(permittedMembers.value, selectedMonth.value))
-const todayBirthdaysCount = computed(() => countTodayBirthdays(permittedMembers.value))
 const currentMonthLabel = computed(() => MONTHS_AR[selectedMonth.value - 1])
-const hasTodayBirthdays = computed(() => todayBirthdaysCount.value > 0)
 
 function logout() {
   localStorage.removeItem('token')
@@ -643,6 +662,7 @@ const toArray = (d) => (Array.isArray(d) ? d : Array.isArray(d?.data) ? d.data :
 async function loadData() {
   loading.value = true
   error.value = false
+  failedRequests.value = []
   try {
     const token = localStorage.getItem('token')
     if (!token) {
@@ -650,15 +670,20 @@ async function loadData() {
       return
     }
 
-    // TODO: re-enable /api/me later
-    // TODO: re-enable /dashboard/stats later (الأرقام دلوقتي بتتحسب من members/attendance/followups)
-
     // فشل طلب واحد مايوقفش الباقي
+    const names = ['المخدومين', 'الافتقاد', 'الحضور']
     const results = await Promise.allSettled([
       api.get('/members'),
       api.get('/followups'),
       api.get('/attendance'),
     ])
+
+    results.forEach((r, i) => {
+      if (r.status === 'rejected') {
+        failedRequests.value.push(names[i])
+        console.error(`[Dashboard] ${names[i]} failed:`, r.reason?.response?.status, r.reason?.response?.data || r.reason)
+      }
+    })
 
     if (results[0].status === 'fulfilled') {
       members.value = toArray(results[0].value.data)
@@ -694,6 +719,6 @@ async function loadData() {
     loading.value = false
   }
 }
-//** */
+
 onMounted(loadData)
 </script>

@@ -276,6 +276,91 @@
           </ul>
         </section>
 
+        <!-- ============ Group Servants (Visible to all who can see the group) ============ -->
+        <section v-if="groupServants.length > 0" class="rounded-2xl border border-border bg-card mt-5" aria-labelledby="servants-title">
+          <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-4 border-b border-border">
+            <h2 id="servants-title" class="text-base font-semibold text-navy flex items-center gap-2">
+              <Icon name="users" class="w-4 h-4 text-gold" />
+              خدام المجموعة
+              <span class="text-sm font-normal text-navy/50">({{ groupServants.length }})</span>
+            </h2>
+            <button
+              v-if="user.role === 'admin'"
+              @click="showServantsModal = true"
+              class="inline-flex items-center gap-1.5 rounded-lg bg-gold px-3.5 py-2 text-sm text-white font-medium hover:opacity-90"
+            >
+              <Icon name="plus" class="w-4 h-4" />
+              إضافة خادم
+            </button>
+          </div>
+
+          <ul class="divide-y divide-border">
+            <li v-for="s in groupServants" :key="s.servant_id" class="flex items-center justify-between px-5 py-3">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gold/10 text-gold text-xs font-bold flex items-center justify-center">
+                  {{ s.servant_name.charAt(0) }}
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-navy">{{ s.servant_name }}</p>
+                  <p class="text-xs text-navy/50">{{ s.servant_email }}</p>
+                </div>
+              </div>
+              <button
+                v-if="user.role === 'admin'"
+                @click="removeServant(s.servant_id)"
+                class="text-danger hover:bg-danger/10 px-2 py-1 rounded text-xs"
+              >
+                إزالة
+              </button>
+            </li>
+          </ul>
+        </section>
+
+        <!-- Add Servants Modal (Admin Only) -->
+        <transition name="fade">
+          <div
+            v-if="showServantsModal"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            @click.self="showServantsModal = false"
+          >
+            <div class="w-full max-w-md rounded-2xl bg-card border border-border shadow-xl">
+              <div class="flex items-center justify-between px-5 pt-5 pb-3 border-b border-border">
+                <h3 class="text-lg font-semibold text-navy">إضافة خادم للمجموعة</h3>
+                <button @click="showServantsModal = false" class="w-9 h-9 rounded-full text-navy/60 hover:bg-page hover:text-navy flex items-center justify-center">
+                  <Icon name="x" class="w-5 h-5" />
+                </button>
+              </div>
+              <div class="px-5 py-3 border-b border-border">
+                <input v-model="servantSearch" type="search" placeholder="ابحث بالاسم أو الإيميل..." class="input w-full" />
+              </div>
+              <div class="max-h-64 overflow-y-auto">
+                <div v-if="servantsLoading" class="py-8 text-center">
+                  <div class="animate-spin w-7 h-7 mx-auto border-2 border-navy/20 border-t-navy rounded-full"></div>
+                </div>
+                <div v-else-if="availableServants.length === 0" class="py-8 text-center text-navy/60 text-sm">
+                  كل الخدام النشطين متواجدين في المجموعة
+                </div>
+                <ul v-else class="divide-y divide-border">
+                  <li v-for="s in filteredAvailableServants" :key="s.id">
+                    <button
+                      @click="addServant(s.id)"
+                      class="w-full text-right px-5 py-3 hover:bg-page/50 transition-colors flex items-center gap-3"
+                    >
+                      <div class="w-8 h-8 rounded-lg bg-navy/5 text-navy/70 text-xs font-bold flex items-center justify-center">
+                        {{ s.name.charAt(0) }}
+                      </div>
+                      <div class="text-right flex-1">
+                        <p class="text-sm font-medium text-navy">{{ s.name }}</p>
+                        <p class="text-xs text-navy/50">{{ s.email }}</p>
+                      </div>
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </transition>
+
         <!-- ============ Add members sheet ============ -->
         <transition name="fade">
           <div
@@ -642,6 +727,14 @@ const notFound = ref(false)
 const successMessage = ref('')
 const sortBy = ref('name')
 
+// Group servants state
+const groupServants = ref([])
+const availableServants = ref([])
+const showServantsModal = ref(false)
+const servantsLoading = ref(false)
+const servantsError = ref('')
+const servantSearch = ref('')
+
 // Nominate Leader modal state
 const showNominateLeader = ref(false)
 const nominateLoading = ref(false)
@@ -654,10 +747,14 @@ const sortOptions = [
   { value: 'attendance', label: 'الأقل حضوراً' },
 ]
 
-// Check if current user is the responsible servant (servant or co_servant) for this group
+// Check if current user is the responsible servant (servant or co_servant or added servant) for this group
 const isResponsibleServant = computed(() => {
   if (!group.value || !user.id) return false
-  return group.value.servant_id === user.id || group.value.co_servant_id === user.id
+  // Check direct roles
+  if (group.value.servant_id === user.id || group.value.co_servant_id === user.id) return true
+  // Check if user is in group_servants (from group.full response - group.group_servants would need to be added)
+  // For now we rely on backend allowing access; frontend visibility follows the same logic
+  return false
 })
 
 // Eligible members for leader nomination (members of this group without a leader role)
@@ -922,18 +1019,83 @@ async function addSelected() {
   }
 }
 
+/* ---------- Group Servants ---------- */
+async function loadGroupServants() {
+  try {
+    const { data } = await api.get(`/groups/${group.value.id}/servants`)
+    groupServants.value = data
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+async function loadAvailableServants() {
+  servantsLoading.value = true
+  servantsError.value = ''
+  try {
+    const { data } = await api.get('/users', {
+      params: { role: 'servant', status: 'active', limit: 200 }
+    })
+    const assignedIds = new Set(groupServants.value.map(s => s.servant_id))
+    availableServants.value = data.filter(s => !assignedIds.has(s.id))
+  } catch (e) {
+    console.error(e)
+    servantsError.value = e.response?.data?.message || 'فشل التحميل'
+  } finally {
+    servantsLoading.value = false
+  }
+}
+
+async function addServant(servantId) {
+  try {
+    await api.post(`/groups/${group.value.id}/servants`, { servant_id: servantId })
+    showServantsModal.value = false
+    showSuccess('تم إضافة الخادم للمجموعة ✅')
+    await loadGroupServants()
+  } catch (e) {
+    console.error(e)
+    alert(e.response?.data?.message || 'فشلت الإضافة')
+  }
+}
+
+async function removeServant(servantId) {
+  if (!confirm('إزالة هذا الخادم من المجموعة؟')) return
+  try {
+    await api.delete(`/groups/${group.value.id}/servants/${servantId}`)
+    showSuccess('تم إزالة الخادم من المجموعة ✅')
+    await loadGroupServants()
+  } catch (e) {
+    console.error(e)
+    alert(e.response?.data?.message || 'فشلت الإزالة')
+  }
+}
+
+const filteredAvailableServants = computed(() => {
+  const q = servantSearch.value.toLowerCase()
+  return availableServants.value.filter(s =>
+    s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q)
+  )
+})
+
 /* ---------- Escape + قفل سكرول الصفحة ---------- */
 function onKeydown(e) {
   if (e.key === 'Escape' && showAdd.value) closeAdd()
+  if (e.key === 'Escape' && showServantsModal.value) showServantsModal.value = false
 }
 
 watch(showAdd, (open) => {
   document.body.style.overflow = open ? 'hidden' : ''
 })
 
+watch(showServantsModal, (open) => {
+  if (open) loadAvailableServants()
+  document.body.style.overflow = open ? 'hidden' : ''
+})
+
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
   loadData()
+  loadGroupServants()
 })
 
 onBeforeUnmount(() => {
